@@ -2,7 +2,6 @@ use super::*;
 // use substrate_fixed::types::I96F32;
 
 impl<T: Config> Pallet<T> {
-   
     /// Moves stake from one hotkey to another across subnets.
     ///
     /// # Arguments
@@ -21,7 +20,7 @@ impl<T: Config> Pallet<T> {
     /// * Either the origin or destination subnet does not exist.
     /// * The `origin_hotkey` or `destination_hotkey` does not exist.
     /// * There are locked funds that cannot be moved across subnets.
-    /// 
+    ///
     /// # Events
     /// Emits a `StakeMoved` event upon successful completion of the stake movement.
     pub fn do_move_stake(
@@ -30,6 +29,7 @@ impl<T: Config> Pallet<T> {
         destination_hotkey: T::AccountId,
         origin_netuid: u16,
         destination_netuid: u16,
+        amount_moved: Option<u64>,
     ) -> dispatch::DispatchResult {
         // --- 1. Check that the origin is signed by the origin_hotkey.
         let coldkey = ensure_signed(origin)?;
@@ -66,14 +66,22 @@ impl<T: Config> Pallet<T> {
         }
 
         // --- 6. Get the current alpha stake for the origin hotkey-coldkey pair in the origin subnet
+        // or use amount_moved
         let origin_alpha = Alpha::<T>::get((origin_hotkey.clone(), coldkey.clone(), origin_netuid));
+
+        let move_alpha = match amount_moved {
+            Some(amount) if amount <= origin_alpha => amount,
+            _ => origin_alpha,
+        };
+
+        ensure!(move_alpha > 0, Error::<T>::MoveAmountCanNotBeZero);
 
         // --- 7. Unstake the full amount of alpha from the origin subnet, converting it to TAO
         let origin_tao = Self::unstake_from_subnet(
             &origin_hotkey.clone(),
             &coldkey.clone(),
             origin_netuid,
-            origin_alpha,
+            move_alpha,
         );
 
         // --- 8. Stake the resulting TAO into the destination subnet for the destination hotkey

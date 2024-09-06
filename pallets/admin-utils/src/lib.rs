@@ -8,7 +8,7 @@ use sp_runtime::DispatchError;
 use sp_runtime::{traits::Member, RuntimeAppPublic};
 
 mod benchmarking;
-
+#[allow(clippy::manual_inspect)]
 #[deny(missing_docs)]
 #[frame_support::pallet]
 pub mod pallet {

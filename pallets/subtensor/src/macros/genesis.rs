@@ -47,7 +47,7 @@ mod genesis {
             for net in 1..2 {
                 let netuid: u16 = net as u16;
                 let hotkey = DefaultAccount::<T>::get();
-                SubnetMechanism::<T>::insert(netuid, 1);// Make dynamic.
+                SubnetMechanism::<T>::insert(netuid, 1); // Make dynamic.
                 Owner::<T>::insert(hotkey.clone(), hotkey.clone());
                 SubnetAlphaIn::<T>::insert(netuid, 1);
                 SubnetTAO::<T>::insert(netuid, 10_000_000_000);
@@ -55,36 +55,33 @@ mod genesis {
                 TotalNetworks::<T>::mutate(|n| *n = n.saturating_add(1));
                 SubnetworkN::<T>::insert(netuid, 0);
                 MaxAllowedUids::<T>::insert(netuid, 256u16);
-                MaxAllowedValidators::<T>::insert( netuid, 64u16);
-                MinAllowedWeights::<T>::insert( netuid, 0);
-                MaxWeightsLimit::<T>::insert( netuid, u16::MAX );
-                Tempo::<T>::insert( netuid, 100);
-                NetworkRegistrationAllowed::<T>::insert( netuid, true );
+                MaxAllowedValidators::<T>::insert(netuid, 64u16);
+                MinAllowedWeights::<T>::insert(netuid, 0);
+                MaxWeightsLimit::<T>::insert(netuid, u16::MAX);
+                Tempo::<T>::insert(netuid, 100);
+                NetworkRegistrationAllowed::<T>::insert(netuid, true);
                 SubnetOwner::<T>::insert(netuid, hotkey.clone());
                 SubnetLocked::<T>::insert(netuid, 1);
                 LargestLocked::<T>::insert(netuid, 1);
                 Locks::<T>::insert(
                     // Lock the initial funds making this key the owner.
                     (netuid, hotkey.clone(), hotkey.clone()),
-                    (
-                        1,
-                        0,
-                        7200 * 30,
-                    ),
+                    (1, 0, 7200 * 30),
                 );
                 Alpha::<T>::insert(
                     // Lock the initial funds making this key the owner.
-                    (hotkey.clone(), hotkey.clone(), netuid), 1_000_000_000
+                    (hotkey.clone(), hotkey.clone(), netuid),
+                    1_000_000_000,
                 );
                 TotalHotkeyAlpha::<T>::insert(hotkey.clone(), netuid, 1_000_000_000);
                 TotalColdkeyAlpha::<T>::insert(hotkey.clone(), netuid, 1_000_000_000);
-                SubnetAlphaOut::<T>::insert( netuid, 1_000_000_000 );
+                SubnetAlphaOut::<T>::insert(netuid, 1_000_000_000);
                 let mut staking_hotkeys = StakingHotkeys::<T>::get(hotkey.clone());
                 if !staking_hotkeys.contains(&hotkey) {
                     staking_hotkeys.push(hotkey.clone());
                     StakingHotkeys::<T>::insert(hotkey.clone(), staking_hotkeys.clone());
                 }
-    
+
                 let block_number = Pallet::<T>::get_current_block_as_u64();
                 for next_uid_s in 0..1 {
                     let next_uid: u16 = next_uid_s as u16;

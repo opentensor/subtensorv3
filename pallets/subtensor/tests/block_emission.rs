@@ -1,3 +1,8 @@
+#![allow(
+    clippy::arithmetic_side_effects,
+    clippy::unwrap_used,
+    clippy::indexing_slicing
+)]
 mod mock;
 use crate::mock::*;
 use pallet_subtensor::*;

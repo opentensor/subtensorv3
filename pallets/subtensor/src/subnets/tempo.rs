@@ -105,7 +105,7 @@ impl<T: Config> Pallet<T> {
         let norm_tao: Vec<I96F32> = tao
             .iter()
             .map(|&x| {
-                let normalized = I96F32::from_num(x) / total_tao;
+                let normalized = I96F32::from_num(x).saturating_div(total_tao);
                 log::debug!("Normalized TAO: {}", normalized);
                 normalized
             })
@@ -117,7 +117,7 @@ impl<T: Config> Pallet<T> {
             .into_iter()
             .map(|value| {
                 if value > 0 {
-                    let tempo = (I96F32::from_num(k) / value)
+                    let tempo = (I96F32::from_num(k).saturating_div(value))
                         .clamp(I96F32::from_num(min_tempo), I96F32::from_num(max_tempo));
                     log::debug!("Calculated tempo: {}", tempo);
                     tempo

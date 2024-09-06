@@ -178,5 +178,7 @@ mod errors {
         SubnetNotExists,
         /// Subnet has already been converted.
         SubnetAlreadyConverted,
+        /// The amount of movement cannot be equal to zero.
+        MoveAmountCanNotBeZero,
     }
 }

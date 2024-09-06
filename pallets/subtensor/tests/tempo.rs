@@ -1,4 +1,10 @@
+#![allow(
+    clippy::arithmetic_side_effects,
+    clippy::unwrap_used,
+    clippy::indexing_slicing
+)]
 mod mock;
+
 use mock::*;
 use pallet_subtensor::*;
 

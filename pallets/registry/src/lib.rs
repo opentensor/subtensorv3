@@ -20,6 +20,7 @@ use sp_std::boxed::Box;
 
 type BalanceOf<T> =
     <<T as Config>::Currency as fungible::Inspect<<T as frame_system::Config>::AccountId>>::Balance;
+#[allow(clippy::manual_inspect)]
 #[deny(missing_docs)]
 #[frame_support::pallet]
 pub mod pallet {

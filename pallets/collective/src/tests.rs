@@ -45,6 +45,7 @@ frame_support::construct_runtime!(
 );
 mod mock_democracy {
     pub use pallet::*;
+    #[allow(clippy::manual_inspect)]
     #[frame_support::pallet(dev_mode)]
     pub mod pallet {
         use frame_support::pallet_prelude::*;

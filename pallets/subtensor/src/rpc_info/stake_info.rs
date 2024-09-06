@@ -31,13 +31,19 @@ impl<T: Config> Pallet<T> {
             let mut stake_info_for_coldkey: Vec<StakeInfo<T>> = Vec::new();
             for netuid_i in netuids.clone().iter() {
                 for hotkey_i in staking_hotkeys.clone().iter() {
-                    let alpha: u64 = Alpha::<T>::get((hotkey_i.clone(), coldkey_i.clone(), netuid_i));
-                    let emission: u64 = LastHotkeyColdkeyEmissionOnNetuid::<T>::get( (hotkey_i.clone(), coldkey_i.clone(), *netuid_i) );
-                    let drain: u64 = LastHotkeyEmissionDrain::<T>::get( hotkey_i.clone() );
+                    let alpha: u64 =
+                        Alpha::<T>::get((hotkey_i.clone(), coldkey_i.clone(), netuid_i));
+                    let emission: u64 = LastHotkeyColdkeyEmissionOnNetuid::<T>::get((
+                        hotkey_i.clone(),
+                        coldkey_i.clone(),
+                        *netuid_i,
+                    ));
+                    let drain: u64 = LastHotkeyEmissionDrain::<T>::get(hotkey_i.clone());
                     let conviction: u64 = Self::get_conviction_for_hotkey_and_coldkey_on_subnet(
                         hotkey_i, coldkey_i, *netuid_i,
                     );
-                    let is_registered: bool = Self::is_hotkey_registered_on_network(*netuid_i, &hotkey_i);
+                    let is_registered: bool =
+                        Self::is_hotkey_registered_on_network(*netuid_i, hotkey_i);
                     stake_info_for_coldkey.push(StakeInfo {
                         hotkey: hotkey_i.clone(),
                         coldkey: coldkey_i.clone(),
@@ -46,7 +52,7 @@ impl<T: Config> Pallet<T> {
                         locked: conviction.into(),
                         emission: emission.into(),
                         drain: drain.into(),
-                        is_registered: is_registered,
+                        is_registered,
                     });
                 }
             }

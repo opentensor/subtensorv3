@@ -165,6 +165,7 @@ pub struct Votes<AccountId, BlockNumber> {
     /// The hard end time of this vote.
     end: BlockNumber,
 }
+#[allow(clippy::manual_inspect)]
 #[deny(missing_docs)]
 #[frame_support::pallet]
 pub mod pallet {

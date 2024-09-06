@@ -618,7 +618,7 @@ impl<T: Config> Pallet<T> {
         SubnetOwnerCut::<T>::get()
     }
     pub fn get_float_subnet_owner_cut() -> I96F32 {
-        I96F32::from_num(SubnetOwnerCut::<T>::get()) / I96F32::from_num(u16::MAX)
+        I96F32::from_num(SubnetOwnerCut::<T>::get()).saturating_div(I96F32::from_num(u16::MAX))
     }
     pub fn set_subnet_owner_cut(subnet_owner_cut: u16) {
         SubnetOwnerCut::<T>::set(subnet_owner_cut);

@@ -68,6 +68,7 @@ impl<T: Config> Pallet<T> {
     ///       - Computes the constant product k = alpha * tao.
     ///       - Calculates alpha staked using the formula: alpha_staked = current_alpha - (k / (current_tao + new_tao)).
     ///       - Calculates new subnet alpha after staking.
+    ///
     ///    b. For Stable mechanism (mechanism_id == 0):
     ///       - Sets alpha staked equal to TAO staked.
     ///       - Sets new subnet alpha to zero.

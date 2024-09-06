@@ -1,3 +1,8 @@
+#![allow(
+    clippy::arithmetic_side_effects,
+    clippy::unwrap_used,
+    clippy::indexing_slicing
+)]
 mod mock;
 use frame_support::{assert_noop, assert_ok};
 use mock::*;
@@ -2518,7 +2523,8 @@ fn test_update_subnet_owner_tie_breaking() {
         );
 
         // Verify that the subnet locked amount is correct
-        let conviction1 = SubtensorModule::calculate_conviction(1000000, current_block + 1000000, current_block);
+        let conviction1 =
+            SubtensorModule::calculate_conviction(1000000, current_block + 1000000, current_block);
         assert_eq!(
             SubnetLocked::<Test>::get(netuid),
             conviction1 * 3,

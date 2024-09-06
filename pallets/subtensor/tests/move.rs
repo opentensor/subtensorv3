@@ -29,7 +29,8 @@ fn test_do_move_success() {
             origin_hotkey,
             destination_hotkey,
             netuid,
-            netuid
+            netuid,
+            None
         ));
 
         // Check that the stake has been moved
@@ -78,7 +79,8 @@ fn test_do_move_different_subnets() {
             origin_hotkey,
             destination_hotkey,
             origin_netuid,
-            destination_netuid
+            destination_netuid,
+            None
         ));
 
         // Check that the stake has been moved
@@ -136,7 +138,8 @@ fn test_do_move_locked_funds() {
                 origin_hotkey,
                 destination_hotkey,
                 origin_netuid,
-                destination_netuid
+                destination_netuid,
+                None
             ),
             Error::<Test>::NotEnoughStakeToWithdraw
         );
@@ -184,7 +187,8 @@ fn test_do_move_nonexistent_subnet() {
                 origin_hotkey,
                 destination_hotkey,
                 origin_netuid,
-                nonexistent_netuid
+                nonexistent_netuid,
+                None
             ),
             Error::<Test>::SubnetNotExists
         );
@@ -220,7 +224,8 @@ fn test_do_move_nonexistent_origin_hotkey() {
                 nonexistent_origin_hotkey,
                 destination_hotkey,
                 netuid,
-                netuid
+                netuid,
+                None
             ),
             Error::<Test>::HotKeyAccountNotExists
         );
@@ -268,7 +273,8 @@ fn test_do_move_nonexistent_destination_hotkey() {
                 origin_hotkey,
                 nonexistent_destination_hotkey,
                 netuid,
-                netuid
+                netuid,
+                None
             ),
             Error::<Test>::HotKeyAccountNotExists
         );
@@ -308,13 +314,17 @@ fn test_do_move_zero_stake() {
         add_network(netuid, 0, 0);
         SubtensorModule::create_account_if_non_existent(&coldkey, &origin_hotkey);
         SubtensorModule::create_account_if_non_existent(&coldkey, &destination_hotkey);
-        assert_ok!(SubtensorModule::do_move_stake(
-            RuntimeOrigin::signed(coldkey),
-            origin_hotkey,
-            destination_hotkey,
-            netuid,
-            netuid
-        ));
+        assert_noop!(
+            SubtensorModule::do_move_stake(
+                RuntimeOrigin::signed(coldkey),
+                origin_hotkey,
+                destination_hotkey,
+                netuid,
+                netuid,
+                None
+            ),
+            Error::<Test>::MoveAmountCanNotBeZero
+        );
 
         // Check that no stake was moved
         assert_eq!(
@@ -360,7 +370,8 @@ fn test_do_move_all_stake() {
             origin_hotkey,
             destination_hotkey,
             netuid,
-            netuid
+            netuid,
+            None
         ));
 
         // Check that all stake was moved
@@ -407,7 +418,8 @@ fn test_do_move_partial_stake() {
             origin_hotkey,
             destination_hotkey,
             netuid,
-            netuid
+            netuid,
+            None
         ));
 
         // Check that the correct amount of stake was moved
@@ -455,14 +467,16 @@ fn test_do_move_multiple_times() {
                 hotkey1,
                 hotkey2,
                 netuid,
-                netuid
+                netuid,
+                None
             ));
             assert_ok!(SubtensorModule::do_move_stake(
                 RuntimeOrigin::signed(coldkey),
                 hotkey2,
                 hotkey1,
                 netuid,
-                netuid
+                netuid,
+                None
             ));
         }
 
@@ -511,7 +525,8 @@ fn test_do_move_with_locks() {
             origin_hotkey,
             destination_hotkey,
             netuid,
-            netuid
+            netuid,
+            None
         ));
 
         // Check that only unlocked stake was moved
@@ -554,13 +569,17 @@ fn test_do_move_wrong_origin() {
         add_network(netuid, 0, 0);
         SubtensorModule::create_account_if_non_existent(&coldkey, &origin_hotkey);
         SubtensorModule::create_account_if_non_existent(&coldkey, &destination_hotkey);
-        assert_ok!(SubtensorModule::do_move_stake(
-            RuntimeOrigin::signed(wrong_coldkey),
-            origin_hotkey,
-            destination_hotkey,
-            netuid,
-            netuid
-        ));
+        assert_noop!(
+            SubtensorModule::do_move_stake(
+                RuntimeOrigin::signed(wrong_coldkey),
+                origin_hotkey,
+                destination_hotkey,
+                netuid,
+                netuid,
+                Some(1)
+            ),
+            Error::<Test>::MoveAmountCanNotBeZero
+        );
 
         // Check that no stake was moved
         assert_eq!(
@@ -604,7 +623,8 @@ fn test_do_move_same_hotkey() {
             hotkey,
             hotkey,
             netuid,
-            netuid
+            netuid,
+            None
         ));
 
         // Check that stake remains unchanged
@@ -640,7 +660,8 @@ fn test_do_move_event_emission() {
             origin_hotkey,
             destination_hotkey,
             netuid,
-            netuid
+            netuid,
+            None
         ));
 
         // Check for the correct event emission
@@ -676,7 +697,8 @@ fn test_do_move_storage_updates() {
             origin_hotkey,
             destination_hotkey,
             origin_netuid,
-            destination_netuid
+            destination_netuid,
+            None
         ));
 
         // Verify storage updates
@@ -739,7 +761,8 @@ fn test_do_move_max_values() {
             origin_hotkey,
             destination_hotkey,
             netuid,
-            netuid
+            netuid,
+            None
         ));
 
         // Verify stake movement without overflow
