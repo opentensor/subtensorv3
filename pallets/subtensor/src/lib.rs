@@ -1350,19 +1350,6 @@ pub enum CallType {
     Other,
 }
 
-#[derive(Debug, PartialEq)]
-pub enum CustomTransactionError {
-    ColdkeyInSwapSchedule,
-}
-
-impl From<CustomTransactionError> for u8 {
-    fn from(variant: CustomTransactionError) -> u8 {
-        match variant {
-            CustomTransactionError::ColdkeyInSwapSchedule => 0,
-        }
-    }
-}
-
 #[freeze_struct("61e2b893d5ce6701")]
 #[derive(Encode, Decode, Clone, Eq, PartialEq, TypeInfo)]
 pub struct SubtensorSignedExtension<T: Config + Send + Sync + TypeInfo>(pub PhantomData<T>);
@@ -1445,7 +1432,7 @@ where
                         ..Default::default()
                     })
                 } else {
-                    Err(InvalidTransaction::Custom(1).into())
+                    InvalidTransaction::Custom(Error::<T>::CommitWeightsBelowMinStake.into()).into()
                 }
             }
             Some(Call::reveal_weights { netuid, .. }) => {
@@ -1457,7 +1444,7 @@ where
                         ..Default::default()
                     })
                 } else {
-                    Err(InvalidTransaction::Custom(2).into())
+                    InvalidTransaction::Custom(Error::<T>::RevealWeightsBelowMinStake.into()).into()
                 }
             }
             Some(Call::set_weights { netuid, .. }) => {
@@ -1469,7 +1456,7 @@ where
                         ..Default::default()
                     })
                 } else {
-                    Err(InvalidTransaction::Custom(3).into())
+                    InvalidTransaction::Custom(Error::<T>::SetWeightsBelowMinStake.into()).into()
                 }
             }
             Some(Call::set_root_weights { netuid, hotkey, .. }) => {
@@ -1481,7 +1468,8 @@ where
                         ..Default::default()
                     })
                 } else {
-                    Err(InvalidTransaction::Custom(4).into())
+                    InvalidTransaction::Custom(Error::<T>::SetRootWeightsBelowMinStake.into())
+                        .into()
                 }
             }
             Some(Call::add_stake { .. }) => Ok(ValidTransaction {
@@ -1500,7 +1488,10 @@ where
                 if registrations_this_interval >= (max_registrations_per_interval.saturating_mul(3))
                 {
                     // If the registration limit for the interval is exceeded, reject the transaction
-                    return Err(InvalidTransaction::Custom(5).into());
+                    return InvalidTransaction::Custom(
+                        Error::<T>::MaxIntervalRegistrationsReached.into(),
+                    )
+                    .into();
                 }
                 Ok(ValidTransaction {
                     priority: Self::get_priority_vanilla(),
@@ -1513,8 +1504,7 @@ where
             }),
             Some(Call::dissolve_network { .. }) => {
                 if ColdkeySwapScheduled::<T>::contains_key(who) {
-                    InvalidTransaction::Custom(CustomTransactionError::ColdkeyInSwapSchedule.into())
-                        .into()
+                    InvalidTransaction::Custom(Error::<T>::ColdkeyInSwapSchedule.into()).into()
                 } else {
                     Ok(ValidTransaction {
                         priority: Self::get_priority_vanilla(),
@@ -1531,7 +1521,7 @@ where
                 {
                     if ColdkeySwapScheduled::<T>::contains_key(who) {
                         return InvalidTransaction::Custom(
-                            CustomTransactionError::ColdkeyInSwapSchedule.into(),
+                            Error::<T>::ColdkeyInSwapSchedule.into(),
                         )
                         .into();
                     }

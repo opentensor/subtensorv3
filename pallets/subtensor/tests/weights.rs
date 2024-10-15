@@ -107,7 +107,7 @@ fn test_set_rootweights_validate() {
         assert_err!(
             // Should get an invalid transaction error
             result_no_stake,
-            TransactionValidityError::Invalid(InvalidTransaction::Custom(4))
+            TransactionValidityError::Invalid(InvalidTransaction::Custom(93))
         );
 
         // Increase the stake to be equal to the minimum
@@ -207,7 +207,7 @@ fn test_commit_weights_validate() {
         assert_err!(
             // Should get an invalid transaction error
             result_no_stake,
-            TransactionValidityError::Invalid(InvalidTransaction::Custom(1))
+            TransactionValidityError::Invalid(InvalidTransaction::Custom(90))
         );
 
         // Increase the stake to be equal to the minimum
@@ -300,7 +300,7 @@ fn test_set_weights_validate() {
         // Should fail due to insufficient stake
         assert_err!(
             result_no_stake,
-            TransactionValidityError::Invalid(InvalidTransaction::Custom(3))
+            TransactionValidityError::Invalid(InvalidTransaction::Custom(92))
         );
 
         // Increase the stake to be equal to the minimum
@@ -366,7 +366,7 @@ fn test_reveal_weights_validate() {
         assert_err!(
             // Should get an invalid transaction error
             result_no_stake,
-            TransactionValidityError::Invalid(InvalidTransaction::Custom(2))
+            TransactionValidityError::Invalid(InvalidTransaction::Custom(91))
         );
 
         // Increase the stake to be equal to the minimum
