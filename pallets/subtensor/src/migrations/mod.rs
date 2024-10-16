@@ -7,6 +7,7 @@ pub mod migrate_fix_total_coldkey_stake;
 pub mod migrate_init_total_issuance;
 pub mod migrate_populate_owned_hotkeys;
 pub mod migrate_populate_staking_hotkeys;
+pub mod migrate_remove_zero_stake;
 pub mod migrate_to_v1_separate_emission;
 pub mod migrate_to_v2_fixed_total_stake;
 pub mod migrate_total_issuance;

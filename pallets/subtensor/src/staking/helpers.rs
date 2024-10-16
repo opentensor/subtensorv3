@@ -260,14 +260,15 @@ impl<T: Config> Pallet<T> {
             hotkey,
             TotalHotkeyStake::<T>::get(hotkey).saturating_sub(decrement),
         );
-        Stake::<T>::insert(
-            hotkey,
-            coldkey,
-            Stake::<T>::get(hotkey, coldkey).saturating_sub(decrement),
-        );
         TotalStake::<T>::put(TotalStake::<T>::get().saturating_sub(decrement));
 
-        // TODO: Tech debt: Remove StakingHotkeys entry if stake goes to 0
+        let new_stake = Stake::<T>::get(hotkey, coldkey).saturating_sub(decrement);
+
+        if new_stake == 0 {
+            Stake::<T>::remove(hotkey, coldkey);
+        } else {
+            Stake::<T>::insert(hotkey, coldkey, new_stake);
+        }
     }
 
     /// Empties the stake associated with a given coldkey-hotkey account pairing.

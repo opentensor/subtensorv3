@@ -1,7 +1,7 @@
 #![allow(clippy::unwrap_used)]
 #![allow(clippy::arithmetic_side_effects)]
 
-use frame_support::{assert_err, assert_noop, assert_ok, traits::Currency};
+use frame_support::{assert_err, assert_noop, assert_ok, pallet_prelude::Weight, traits::Currency};
 use frame_system::Config;
 mod mock;
 use frame_support::dispatch::{DispatchClass, DispatchInfo, GetDispatchInfo, Pays};
@@ -2304,5 +2304,134 @@ fn test_get_total_delegated_stake_exclude_owner_stake() {
             "Delegated stake should exclude owner's stake. Expected: {}, Actual: {}",
             expected_delegated_stake, actual_delegated_stake
         );
+    });
+}
+
+#[test]
+fn test_migrate_remove_zero_stakes() {
+    new_test_ext(1).execute_with(|| {
+        let coldkey1 = U256::from(1);
+        let coldkey2 = U256::from(2);
+        let hotkey1 = U256::from(3);
+        let hotkey2 = U256::from(4);
+
+        Stake::<Test>::insert(hotkey1, coldkey1, 0);
+        Stake::<Test>::insert(hotkey2, coldkey2, 100);
+
+        assert_eq!(Stake::<Test>::get(hotkey1, coldkey1), 0);
+        assert_eq!(Stake::<Test>::get(hotkey2, coldkey2), 100);
+
+        assert!(!HasMigrationRun::<Test>::get(
+            b"remove_zero_stakes_v1".to_vec()
+        ));
+
+        let weight =
+            pallet_subtensor::migrations::migrate_remove_zero_stake::migrate_remove_zero_stakes::<
+                Test,
+            >();
+
+        assert!(HasMigrationRun::<Test>::get(
+            b"remove_zero_stakes_v1".to_vec()
+        ));
+
+        assert_eq!(Stake::<Test>::get(hotkey1, coldkey1), 0); // Default is 0
+        assert!(!Stake::<Test>::contains_key(hotkey1, coldkey1));
+
+        assert_eq!(Stake::<Test>::get(hotkey2, coldkey2), 100);
+        assert!(Stake::<Test>::contains_key(hotkey2, coldkey2));
+
+        assert!(
+            weight != Weight::zero(),
+            "Migration weight should be non-zero"
+        );
+    });
+}
+
+#[test]
+fn test_decrease_stake_non_zero_stake() {
+    new_test_ext(1).execute_with(|| {
+        let hotkey = U256::from(1);
+        let coldkey = U256::from(2);
+
+        TotalColdkeyStake::<Test>::insert(coldkey, 200);
+        TotalHotkeyStake::<Test>::insert(hotkey, 150);
+        Stake::<Test>::insert(hotkey, coldkey, 100);
+        TotalStake::<Test>::put(300);
+
+        SubtensorModule::decrease_stake_on_coldkey_hotkey_account(&coldkey, &hotkey, 50);
+
+        assert_eq!(TotalColdkeyStake::<Test>::get(coldkey), 150);
+        assert_eq!(TotalHotkeyStake::<Test>::get(hotkey), 100);
+        assert_eq!(Stake::<Test>::get(hotkey, coldkey), 50);
+        assert_eq!(TotalStake::<Test>::get(), 250);
+    });
+}
+
+#[test]
+fn test_decrease_stake_to_zero() {
+    new_test_ext(1).execute_with(|| {
+        let hotkey = U256::from(1);
+        let coldkey = U256::from(2);
+
+        // Insert initial stake
+        TotalColdkeyStake::<Test>::insert(coldkey, 150);
+        TotalHotkeyStake::<Test>::insert(hotkey, 100);
+        Stake::<Test>::insert(hotkey, coldkey, 50);
+        TotalStake::<Test>::put(250);
+
+        // Decrease stake to zero
+        SubtensorModule::decrease_stake_on_coldkey_hotkey_account(&coldkey, &hotkey, 50);
+
+        // Check that the stake is removed
+        assert_eq!(TotalColdkeyStake::<Test>::get(coldkey), 100);
+        assert_eq!(TotalHotkeyStake::<Test>::get(hotkey), 50);
+        assert!(!Stake::<Test>::contains_key(hotkey, coldkey));
+        assert_eq!(TotalStake::<Test>::get(), 200);
+    });
+}
+
+#[test]
+fn test_decrease_stake_more_than_available() {
+    new_test_ext(1).execute_with(|| {
+        let hotkey = U256::from(1);
+        let coldkey = U256::from(2);
+
+        // Insert initial stake
+        TotalColdkeyStake::<Test>::insert(coldkey, 80);
+        TotalHotkeyStake::<Test>::insert(hotkey, 70);
+        Stake::<Test>::insert(hotkey, coldkey, 60);
+        TotalStake::<Test>::put(150);
+
+        // Decrease by more than available stake
+        SubtensorModule::decrease_stake_on_coldkey_hotkey_account(&coldkey, &hotkey, 100);
+
+        // Check that the stake is zero and removed
+        assert_eq!(TotalColdkeyStake::<Test>::get(coldkey), 0);
+        assert_eq!(TotalHotkeyStake::<Test>::get(hotkey), 0);
+        assert!(!Stake::<Test>::contains_key(hotkey, coldkey));
+        assert_eq!(TotalStake::<Test>::get(), 50);
+    });
+}
+
+#[test]
+fn test_decrease_stake_no_existing_stake() {
+    new_test_ext(1).execute_with(|| {
+        let hotkey = U256::from(1);
+        let coldkey = U256::from(2);
+
+        // Insert zero stake for coldkey and hotkey
+        TotalColdkeyStake::<Test>::insert(coldkey, 0);
+        TotalHotkeyStake::<Test>::insert(hotkey, 0);
+        Stake::<Test>::remove(hotkey, coldkey);
+        TotalStake::<Test>::put(0);
+
+        // Try to decrease stake when no stake exists
+        SubtensorModule::decrease_stake_on_coldkey_hotkey_account(&coldkey, &hotkey, 10);
+
+        // Assert no changes were made
+        assert_eq!(TotalColdkeyStake::<Test>::get(coldkey), 0);
+        assert_eq!(TotalHotkeyStake::<Test>::get(hotkey), 0);
+        assert!(!Stake::<Test>::contains_key(hotkey, coldkey));
+        assert_eq!(TotalStake::<Test>::get(), 0);
     });
 }

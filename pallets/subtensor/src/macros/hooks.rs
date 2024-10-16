@@ -70,7 +70,9 @@ mod hooks {
                 // Storage version v8 -> v9
                 .saturating_add(migrations::migrate_fix_total_coldkey_stake::migrate_fix_total_coldkey_stake::<T>())
                 // Migrate Delegate Ids on chain
-                .saturating_add(migrations::migrate_chain_identity::migrate_set_hotkey_identities::<T>());
+                .saturating_add(migrations::migrate_chain_identity::migrate_set_hotkey_identities::<T>())
+                // Remove stake entries with 0 stake
+                .saturating_add(migrations::migrate_remove_zero_stake::migrate_remove_zero_stakes::<T>());
             weight
         }
 
