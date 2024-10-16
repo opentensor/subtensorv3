@@ -1,6 +1,6 @@
 #![allow(unused, clippy::indexing_slicing, clippy::panic, clippy::unwrap_used)]
 mod mock;
-use frame_support::{assert_ok, weights::Weight};
+use frame_support::{assert_ok, traits::StorageVersion, weights::Weight};
 use frame_system::Config;
 use mock::*;
 use pallet_subtensor::*;
@@ -429,4 +429,64 @@ fn run_migration_and_check(migration_name: &'static str) -> frame_support::weigh
 
     // Return the weight of the executed migration
     weight
+}
+
+#[test]
+fn test_migrate_rename_storage_items() {
+    new_test_ext(1).execute_with(|| {
+        let migration_name = b"migrate_rename_storage_items_v1";
+
+        let account_ids: [U256; 3] = [
+            AccountId::from([1u8; 32]),
+            AccountId::from([2u8; 32]),
+            AccountId::from([3u8; 32]),
+        ];
+
+        let netuids: Vec<u16> = vec![42, 43, 44];
+        let emission_values: Vec<u64> = vec![4, 1000, 0, u64::MAX];
+        let block_values: Vec<u64> = vec![11, 5000, 1, u64::MAX];
+
+        // Insert multiple entries into old storage items with typos
+        for (i, account_id) in account_ids.iter().enumerate() {
+            PendingdHotkeyEmission::<Test>::insert(account_id, emission_values[i]);
+        }
+        for (i, netuid) in netuids.iter().enumerate() {
+            LastMechansimStepBlock::<Test>::insert(*netuid, block_values[i]);
+        }
+
+        assert!(!HasMigrationRun::<Test>::get(migration_name.to_vec()));
+
+        let weight: frame_support::weights::Weight =
+            pallet_subtensor::migrations::migrate_fix_storage_typos::migrate_rename_storage_items::<
+                Test,
+            >();
+
+        assert!(
+            weight != Weight::zero(),
+            "Migration weight should be non-zero"
+        );
+
+        assert!(HasMigrationRun::<Test>::get(migration_name.to_vec()));
+
+        // Verify data has been migrated to the new storage items
+        for (i, account_id) in account_ids.iter().enumerate() {
+            let expected_emission = emission_values[i];
+            assert_eq!(
+                PendingHotkeyEmission::<Test>::get(account_id),
+                expected_emission
+            );
+        }
+        for (i, netuid) in netuids.iter().enumerate() {
+            let expected_block = block_values[i];
+            assert_eq!(LastMechanismStepBlock::<Test>::get(*netuid), expected_block);
+        }
+
+        // Verify all items are removed from the old storage
+        for account_id in account_ids.iter() {
+            assert!(!PendingdHotkeyEmission::<Test>::contains_key(account_id));
+        }
+        for netuid in netuids.iter() {
+            assert!(!LastMechansimStepBlock::<Test>::contains_key(*netuid));
+        }
+    });
 }

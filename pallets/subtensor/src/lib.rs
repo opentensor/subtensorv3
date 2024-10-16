@@ -780,8 +780,18 @@ pub mod pallet {
     pub type HotkeyEmissionTempo<T> =
         StorageValue<_, u64, ValueQuery, DefaultHotkeyEmissionTempo<T>>;
     #[pallet::storage]
-    /// Map ( hot ) --> emission | Accumulated hotkey emission.
+    /// Name corrected: PendingdHotkeyEmission => PendingHotkeyEmission
     pub type PendingdHotkeyEmission<T: Config> = StorageMap<
+        _,
+        Blake2_128Concat,
+        T::AccountId,
+        u64,
+        ValueQuery,
+        DefaultAccumulatedEmission<T>,
+    >;
+    #[pallet::storage]
+    /// Map ( hot ) --> emission | Accumulated hotkey emission.
+    pub type PendingHotkeyEmission<T: Config> = StorageMap<
         _,
         Blake2_128Concat,
         T::AccountId,
@@ -939,8 +949,12 @@ pub mod pallet {
     pub type BlocksSinceLastStep<T> =
         StorageMap<_, Identity, u16, u64, ValueQuery, DefaultBlocksSinceLastStep<T>>;
     #[pallet::storage]
-    /// --- MAP ( netuid ) --> last_mechanism_step_block
+    /// Name corrected: LastMechansimStepBlock => LastMechanismStepBlock
     pub type LastMechansimStepBlock<T> =
+        StorageMap<_, Identity, u16, u64, ValueQuery, DefaultLastMechanismStepBlock<T>>;
+    #[pallet::storage]
+    /// --- MAP ( netuid ) --> last_mechanism_step_block
+    pub type LastMechanismStepBlock<T> =
         StorageMap<_, Identity, u16, u64, ValueQuery, DefaultLastMechanismStepBlock<T>>;
     #[pallet::storage]
     /// --- MAP ( netuid ) --> subnet_owner
