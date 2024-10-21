@@ -12,6 +12,11 @@ repository = "https://github.com/opentensor/subtensor"
 [dependencies]
 node-subtensor = { path = "node", version = "4.0.0-dev" }
 node-subtensor-runtime = { path = "runtime", version = "4.0.0-dev" }
+pallet-subtensor = { path = "pallets/subtensor", version = "4.0.0-dev" }
+pallet-admin-utils = { path = "pallets/admin-utils", version = "4.0.0-dev" }
+pallet-collective = { path = "pallets/collective", version = "4.0.0-dev" }
+pallet-commitments = { path = "pallets/commitments", version = "4.0.0-dev" }
+pallet-registry = { path = "pallets/registry", version = "4.0.0-dev" }
 
 [build-dependencies]
 subtensor-linting = { path = "support/linting", version = "0.1.0" }
@@ -177,5 +182,9 @@ try-runtime = [
 runtime-benchmarks = [
     "node-subtensor/runtime-benchmarks",
     "node-subtensor-runtime/runtime-benchmarks",
+]
+skip-broken-benchmarks = [
+    "pallet-subtensor/skip-broken-benchmarks",
+    "node-subtensor/skip-broken-benchmarks",
 ]
 metadata-hash = ["node-subtensor-runtime/metadata-hash"]

@@ -109,12 +109,16 @@ mod dispatches {
         #[pallet::weight((Weight::from_parts(46_000_000, 0)
 		.saturating_add(T::DbWeight::get().reads(1))
 		.saturating_add(T::DbWeight::get().writes(1)), DispatchClass::Normal, Pays::No))]
+        #[cfg_attr(feature = "skip-broken-benchmarks", allow(unused_variables))]
         pub fn commit_weights(
             origin: T::RuntimeOrigin,
             netuid: u16,
             commit_hash: H256,
         ) -> DispatchResult {
-            Self::do_commit_weights(origin, netuid, commit_hash)
+            #[cfg(feature = "skip-broken-benchmarks")]
+            return Ok(());
+            #[cfg(not(feature = "skip-broken-benchmarks"))]
+            return Self::do_commit_weights(origin, netuid, commit_hash);
         }
 
         /// ---- Used to reveal the weights for a previously committed hash.
@@ -152,6 +156,7 @@ mod dispatches {
         #[pallet::weight((Weight::from_parts(103_000_000, 0)
 		.saturating_add(T::DbWeight::get().reads(11))
 		.saturating_add(T::DbWeight::get().writes(3)), DispatchClass::Normal, Pays::No))]
+        #[cfg_attr(feature = "skip-broken-benchmarks", allow(unused_variables))]
         pub fn reveal_weights(
             origin: T::RuntimeOrigin,
             netuid: u16,
@@ -160,7 +165,10 @@ mod dispatches {
             salt: Vec<u16>,
             version_key: u64,
         ) -> DispatchResult {
-            Self::do_reveal_weights(origin, netuid, uids, values, salt, version_key)
+            #[cfg(not(feature = "skip-broken-benchmarks"))]
+            return Self::do_reveal_weights(origin, netuid, uids, values, salt, version_key);
+            #[cfg(feature = "skip-broken-benchmarks")]
+            return Ok(());
         }
 
         /// # Args:

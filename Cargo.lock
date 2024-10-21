@@ -9873,6 +9873,11 @@ version = "0.1.0"
 dependencies = [
  "node-subtensor",
  "node-subtensor-runtime",
+ "pallet-admin-utils",
+ "pallet-collective",
+ "pallet-commitments",
+ "pallet-registry",
+ "pallet-subtensor",
  "proc-macro2",
  "quote",
  "rayon",

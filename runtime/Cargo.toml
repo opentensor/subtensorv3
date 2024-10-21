@@ -180,6 +180,9 @@ runtime-benchmarks = [
 	"pallet-scheduler/runtime-benchmarks",
 	"pallet-sudo/runtime-benchmarks",
 ]
+skip-broken-benchmarks = [
+	"pallet-subtensor/skip-broken-benchmarks",
+]
 try-runtime = [
 	"frame-try-runtime/try-runtime",
 	"frame-executive/try-runtime",

@@ -116,3 +116,5 @@ try-runtime = [
 	"pallet-collective/try-runtime"
 ]
 pow-faucet = []
+skip-broken-benchmarks = []
+

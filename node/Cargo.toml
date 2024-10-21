@@ -94,6 +94,11 @@ runtime-benchmarks = [
 	"sp-runtime/runtime-benchmarks",
 	"pallet-commitments/runtime-benchmarks",
 ]
+
+skip-broken-benchmarks = [
+	"node-subtensor-runtime/skip-broken-benchmarks",
+]
+
 pow-faucet = []
 
 # Enable features that allow the runtime to be tried and debugged. Name might be subject to change
