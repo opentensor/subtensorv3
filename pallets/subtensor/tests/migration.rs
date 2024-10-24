@@ -1,10 +1,19 @@
 #![allow(unused, clippy::indexing_slicing, clippy::panic, clippy::unwrap_used)]
 mod mock;
-use frame_support::{assert_ok, weights::Weight};
+use codec::{Decode, Encode};
+use frame_support::{
+    assert_ok,
+    storage::unhashed::{get_raw, put_raw},
+    traits::{StorageInstance, StoredMap},
+    weights::Weight,
+    StorageHasher, Twox64Concat,
+};
 use frame_system::Config;
 use mock::*;
 use pallet_subtensor::*;
-use sp_core::U256;
+use sp_core::{H256, U256};
+use sp_io::hashing::twox_128;
+use sp_runtime::traits::Zero;
 
 #[test]
 fn test_initialise_ti() {
@@ -429,4 +438,93 @@ fn run_migration_and_check(migration_name: &'static str) -> frame_support::weigh
 
     // Return the weight of the executed migration
     weight
+}
+
+#[test]
+fn test_migrate_commit_reveal_2() {
+    new_test_ext(1).execute_with(|| {
+        // ------------------------------
+        // Step 1: Simulate Old Storage Entries
+        // ------------------------------
+        const MIGRATION_NAME: &str = "migrate_commit_reveal_2";
+
+        let pallet_prefix = twox_128("SubtensorModule".as_bytes());
+        let storage_prefix_interval = twox_128("WeightCommitRevealInterval".as_bytes());
+        let storage_prefix_commits = twox_128("WeightCommits".as_bytes());
+
+        let netuid: u16 = 1;
+        let interval_value: u64 = 50u64;
+
+        // Construct the full key for WeightCommitRevealInterval
+        let mut interval_key = Vec::new();
+        interval_key.extend_from_slice(&pallet_prefix);
+        interval_key.extend_from_slice(&storage_prefix_interval);
+        interval_key.extend_from_slice(&netuid.encode());
+
+        put_raw(&interval_key, &interval_value.encode());
+
+        let test_account: U256 = U256::from(1);
+
+        // Construct the full key for WeightCommits (DoubleMap)
+        let mut commit_key = Vec::new();
+        commit_key.extend_from_slice(&pallet_prefix);
+        commit_key.extend_from_slice(&storage_prefix_commits);
+
+        // First key (netuid) hashed with Twox64Concat
+        let netuid_hashed = Twox64Concat::hash(&netuid.encode());
+        commit_key.extend_from_slice(&netuid_hashed);
+
+        // Second key (account) hashed with Twox64Concat
+        let account_hashed = Twox64Concat::hash(&test_account.encode());
+        commit_key.extend_from_slice(&account_hashed);
+
+        let commit_value: (H256, u64) = (H256::from_low_u64_be(42), 100);
+        put_raw(&commit_key, &commit_value.encode());
+
+        let stored_interval = get_raw(&interval_key).expect("Expected to get a value");
+        assert_eq!(
+            u64::decode(&mut &stored_interval[..]).expect("Failed to decode interval value"),
+            interval_value
+        );
+
+        let stored_commit = get_raw(&commit_key).expect("Expected to get a value");
+        assert_eq!(
+            <(H256, u64)>::decode(&mut &stored_commit[..]).expect("Failed to decode commit value"),
+            commit_value
+        );
+
+        assert!(
+            !HasMigrationRun::<Test>::get(MIGRATION_NAME.as_bytes().to_vec()),
+            "Migration should not have run yet"
+        );
+
+        // ------------------------------
+        // Step 2: Run the Migration
+        // ------------------------------
+        let weight =
+            pallet_subtensor::migrations::migrate_commit_reveal_v2::migrate_commit_reveal_2::<Test>(
+            );
+
+        assert!(
+            HasMigrationRun::<Test>::get(MIGRATION_NAME.as_bytes().to_vec()),
+            "Migration should be marked as run"
+        );
+
+        // ------------------------------
+        // Step 3: Verify Migration Effects
+        // ------------------------------
+        let stored_interval_after = get_raw(&interval_key);
+        assert!(
+            stored_interval_after.is_none(),
+            "WeightCommitRevealInterval should be cleared"
+        );
+
+        let stored_commit_after = get_raw(&commit_key);
+        assert!(
+            stored_commit_after.is_none(),
+            "WeightCommits entry should be cleared"
+        );
+
+        assert!(!weight.is_zero(), "Migration weight should be non-zero");
+    });
 }

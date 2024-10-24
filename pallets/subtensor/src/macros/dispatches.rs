@@ -102,8 +102,11 @@ mod dispatches {
         ///   - The hash representing the committed weights.
         ///
         /// # Raises:
-        /// * `WeightsCommitNotAllowed`:
-        ///   - Attempting to commit when it is not allowed.
+        /// * `CommitRevealDisabled`:
+        ///   - Attempting to commit when the commit-reveal mechanism is disabled.
+        ///
+        /// * `TooManyUnrevealedCommits`:
+        ///   - Attempting to commit when the user has more than the allowed limit of unrevealed commits.
         ///
         #[pallet::call_index(96)]
         #[pallet::weight((Weight::from_parts(46_000_000, 0)
@@ -132,21 +135,27 @@ mod dispatches {
         /// * `values` (`Vec<u16>`):
         ///   - The values of the weights being revealed.
         ///
-        /// * `salt` (`Vec<u8>`):
-        ///   - The random salt to protect from brute-force guessing attack in case of small weight changes bit-wise.
+        /// * `salt` (`Vec<u16>`):
+        ///   - The salt used to generate the commit hash.
         ///
         /// * `version_key` (`u64`):
         ///   - The network version key.
         ///
         /// # Raises:
+        /// * `CommitRevealDisabled`:
+        ///   - Attempting to reveal weights when the commit-reveal mechanism is disabled.
+        ///
         /// * `NoWeightsCommitFound`:
         ///   - Attempting to reveal weights without an existing commit.
         ///
-        /// * `InvalidRevealCommitHashNotMatchTempo`:
-        ///   - Attempting to reveal weights outside the valid tempo.
+        /// * `ExpiredWeightCommit`:
+        ///   - Attempting to reveal a weight commit that has expired.
+        ///
+        /// * `RevealTooEarly`:
+        ///   - Attempting to reveal weights outside the valid reveal period.
         ///
         /// * `InvalidRevealCommitHashNotMatch`:
-        ///   - The revealed hash does not match the committed hash.
+        ///   - The revealed hash does not match any committed hash.
         ///
         #[pallet::call_index(97)]
         #[pallet::weight((Weight::from_parts(103_000_000, 0)
@@ -161,6 +170,67 @@ mod dispatches {
             version_key: u64,
         ) -> DispatchResult {
             Self::do_reveal_weights(origin, netuid, uids, values, salt, version_key)
+        }
+
+        /// ---- The implementation for batch revealing committed weights.
+        ///
+        /// # Args:
+        /// * `origin`: (`<T as frame_system::Config>::RuntimeOrigin`):
+        ///   - The signature of the revealing hotkey.
+        ///
+        /// * `netuid` (`u16`):
+        ///   - The u16 network identifier.
+        ///
+        /// * `uids_list` (`Vec<Vec<u16>>`):
+        ///   - A list of uids for each set of weights being revealed.
+        ///
+        /// * `values_list` (`Vec<Vec<u16>>`):
+        ///   - A list of values for each set of weights being revealed.
+        ///
+        /// * `salts_list` (`Vec<Vec<u16>>`):
+        ///   - A list of salts used to generate the commit hashes.
+        ///
+        /// * `version_keys` (`Vec<u64>`):
+        ///   - A list of network version keys.
+        ///
+        /// # Raises:
+        /// * `CommitRevealDisabled`:
+        ///   - Attempting to reveal weights when the commit-reveal mechanism is disabled.
+        ///
+        /// * `NoWeightsCommitFound`:
+        ///   - Attempting to reveal weights without an existing commit.
+        ///
+        /// * `ExpiredWeightCommit`:
+        ///   - Attempting to reveal a weight commit that has expired.
+        ///
+        /// * `RevealTooEarly`:
+        ///   - Attempting to reveal weights outside the valid reveal period.
+        ///
+        /// * `InvalidRevealCommitHashNotMatch`:
+        ///   - The revealed hash does not match any committed hash.
+        ///
+        /// * `InvalidInputLengths`:
+        ///   - The input vectors are of mismatched lengths.
+        #[pallet::call_index(98)]
+        #[pallet::weight((Weight::from_parts(367_612_000, 0)
+		.saturating_add(T::DbWeight::get().reads(14))
+		.saturating_add(T::DbWeight::get().writes(3)), DispatchClass::Normal, Pays::No))]
+        pub fn batch_reveal_weights(
+            origin: T::RuntimeOrigin,
+            netuid: u16,
+            uids_list: Vec<Vec<u16>>,
+            values_list: Vec<Vec<u16>>,
+            salts_list: Vec<Vec<u16>>,
+            version_keys: Vec<u64>,
+        ) -> DispatchResult {
+            Self::do_batch_reveal_weights(
+                origin,
+                netuid,
+                uids_list,
+                values_list,
+                salts_list,
+                version_keys,
+            )
         }
 
         /// # Args:

@@ -342,7 +342,7 @@ fn test_swap_certificates() {
         );
     });
 }
-
+use sp_std::collections::vec_deque::VecDeque;
 // SKIP_WASM_BUILD=1 RUST_LOG=debug cargo test --test swap_hotkey -- test_swap_weight_commits --exact --nocapture
 #[test]
 fn test_swap_weight_commits() {
@@ -351,12 +351,13 @@ fn test_swap_weight_commits() {
         let new_hotkey = U256::from(2);
         let coldkey = U256::from(3);
         let netuid = 0u16;
-        let weight_commits = (H256::from_low_u64_be(100), 200);
+        let mut weight_commits: VecDeque<(H256, u64)> = VecDeque::new();
+        weight_commits.push_back((H256::from_low_u64_be(100), 200));
         let mut weight = Weight::zero();
 
         add_network(netuid, 0, 1);
         IsNetworkMember::<Test>::insert(old_hotkey, netuid, true);
-        WeightCommits::<Test>::insert(netuid, old_hotkey, weight_commits);
+        WeightCommits::<Test>::insert(netuid, old_hotkey, weight_commits.clone());
 
         assert_ok!(SubtensorModule::perform_hotkey_swap(
             &old_hotkey,

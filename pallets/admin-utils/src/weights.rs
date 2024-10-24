@@ -60,7 +60,7 @@ pub trait WeightInfo {
 	fn sudo_set_min_burn() -> Weight;
 	fn sudo_set_network_registration_allowed() -> Weight;
 	fn sudo_set_tempo() -> Weight;
-	fn sudo_set_commit_reveal_weights_interval() -> Weight;
+	fn sudo_set_commit_reveal_weights_periods() -> Weight;
 	fn sudo_set_commit_reveal_weights_enabled() -> Weight;
 }
 
@@ -413,12 +413,12 @@ impl<T: frame_system::Config> WeightInfo for SubstrateWeight<T> {
 			.saturating_add(T::DbWeight::get().reads(1_u64))
 			.saturating_add(T::DbWeight::get().writes(1_u64))
 	}
-	fn sudo_set_commit_reveal_weights_interval() -> Weight {
+	fn sudo_set_commit_reveal_weights_periods() -> Weight {
 		// Proof Size summary in bytes:
-		//  Measured:  `1111`
-		//  Estimated: `4697`
-		// Minimum execution time: 46_450_000 picoseconds.
-		Weight::from_parts(47_279_000, 4697)
+		//  Measured:  `456`
+		//  Estimated: `3921`
+		// Minimum execution time: 19_070_000 picoseconds.
+		Weight::from_parts(19_380_000, 456)
 			.saturating_add(T::DbWeight::get().reads(1_u64))
 			.saturating_add(T::DbWeight::get().writes(1_u64))
 	}
@@ -781,17 +781,17 @@ impl WeightInfo for () {
 			.saturating_add(RocksDbWeight::get().reads(1_u64))
 			.saturating_add(RocksDbWeight::get().writes(1_u64))
 	}
-	fn sudo_set_commit_reveal_weights_interval() -> Weight {
+	fn sudo_set_commit_reveal_weights_periods() -> Weight {
 		// -- Extrinsic Time --
 		// Model:
-		// Time ~=    20.42
-		//               µs
+		// Time ~=    19.38
+		// 			  µs
 		// Reads = 1
 		// Writes = 1
 		// Recorded proof Size = 456
-		Weight::from_parts(20_420_000, 456)
-			.saturating_add(RocksDbWeight::get().reads(1_u64))
-			.saturating_add(RocksDbWeight::get().writes(1_u64))
+		Weight::from_parts(19_380_000, 456)
+			.saturating_add(RocksDbWeight::get().reads(1))
+			.saturating_add(RocksDbWeight::get().writes(1))
 	}
 	fn sudo_set_commit_reveal_weights_enabled() -> Weight {
 		// -- Extrinsic Time --

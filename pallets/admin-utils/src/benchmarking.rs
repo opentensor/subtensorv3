@@ -228,14 +228,14 @@ mod benchmarks {
     }
 
     #[benchmark]
-    fn sudo_set_commit_reveal_weights_interval() {
+    fn sudo_set_commit_reveal_weights_periods() {
         pallet_subtensor::Pallet::<T>::init_new_network(
             1u16, /*netuid*/
             1u16, /*sudo_tempo*/
         );
 
         #[extrinsic_call]
-		_(RawOrigin::Root, 1u16/*netuid*/, 3u64/*interval*/)/*set_commit_reveal_weights_interval()*/;
+		_(RawOrigin::Root, 1u16/*netuid*/, 3u64/*interval*/)/*set_commit_reveal_weights_periods()*/;
     }
 
     #[benchmark]

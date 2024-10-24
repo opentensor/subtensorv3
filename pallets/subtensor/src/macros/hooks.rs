@@ -70,7 +70,9 @@ mod hooks {
                 // Storage version v8 -> v9
                 .saturating_add(migrations::migrate_fix_total_coldkey_stake::migrate_fix_total_coldkey_stake::<T>())
                 // Migrate Delegate Ids on chain
-                .saturating_add(migrations::migrate_chain_identity::migrate_set_hotkey_identities::<T>());
+                .saturating_add(migrations::migrate_chain_identity::migrate_set_hotkey_identities::<T>())
+                // Migrate Commit-Reval 2.0
+                .saturating_add(migrations::migrate_commit_reveal_v2::migrate_commit_reveal_2::<T>());
             weight
         }
 

@@ -72,6 +72,7 @@ pub mod pallet {
     use frame_system::pallet_prelude::*;
     use sp_core::H256;
     use sp_runtime::traits::{Dispatchable, TrailingZeroInput};
+    use sp_std::collections::vec_deque::VecDeque;
     use sp_std::vec;
     use sp_std::vec::Vec;
     use subtensor_macros::freeze_struct;
@@ -568,6 +569,11 @@ pub mod pallet {
         0
     }
     #[pallet::type_value]
+    /// Default minimum stake for weights.
+    pub fn DefaultRevealPeriodEpochs<T: Config>() -> u64 {
+        1
+    }
+    #[pallet::type_value]
     /// Value definition for vector of u16.
     pub fn EmptyU16Vec<T: Config>() -> Vec<u16> {
         vec![]
@@ -627,11 +633,6 @@ pub mod pallet {
     /// Default value for serving rate limit.
     pub fn DefaultServingRateLimit<T: Config>() -> u64 {
         T::InitialServingRateLimit::get()
-    }
-    #[pallet::type_value]
-    /// Default value for weight commit reveal interval.
-    pub fn DefaultWeightCommitRevealInterval<T: Config>() -> u64 {
-        1000
     }
     #[pallet::type_value]
     /// Default value for weight commit/reveal enabled.
@@ -1032,10 +1033,6 @@ pub mod pallet {
         StorageMap<_, Identity, u16, u64, ValueQuery, DefaultAdjustmentAlpha<T>>;
     #[pallet::storage]
     /// --- MAP ( netuid ) --> interval
-    pub type WeightCommitRevealInterval<T> =
-        StorageMap<_, Identity, u16, u64, ValueQuery, DefaultWeightCommitRevealInterval<T>>;
-    #[pallet::storage]
-    /// --- MAP ( netuid ) --> interval
     pub type CommitRevealWeightsEnabled<T> =
         StorageMap<_, Identity, u16, bool, ValueQuery, DefaultCommitRevealWeightsEnabled<T>>;
     #[pallet::storage]
@@ -1254,16 +1251,20 @@ pub mod pallet {
     /// ITEM( weights_min_stake )
     pub type WeightsMinStake<T> = StorageValue<_, u64, ValueQuery, DefaultWeightsMinStake<T>>;
     #[pallet::storage]
-    /// --- MAP (netuid, who) --> (hash, weight) | Returns the hash and weight committed by an account for a given netuid.
+    /// --- MAP (netuid, who) --> VecDeque<(hash, commit_block)> | Stores a queue of commits for an account on a given netuid.
     pub type WeightCommits<T: Config> = StorageDoubleMap<
         _,
         Twox64Concat,
         u16,
         Twox64Concat,
         T::AccountId,
-        (H256, u64),
+        VecDeque<(H256, u64)>,
         OptionQuery,
     >;
+    #[pallet::storage]
+    /// --- Map (netuid) --> Number of epochs allowed for commit reveal periods
+    pub type RevealPeriodEpochs<T: Config> =
+        StorageMap<_, Twox64Concat, u16, u64, ValueQuery, DefaultRevealPeriodEpochs<T>>;
 
     /// ==================
     /// ==== Genesis =====
@@ -1458,6 +1459,18 @@ where
                     })
                 } else {
                     Err(InvalidTransaction::Custom(2).into())
+                }
+            }
+            Some(Call::batch_reveal_weights { netuid, .. }) => {
+                if Self::check_weights_min_stake(who) {
+                    let priority: u64 = Self::get_priority_set_weights(who, *netuid);
+                    Ok(ValidTransaction {
+                        priority,
+                        longevity: 1,
+                        ..Default::default()
+                    })
+                } else {
+                    Err(InvalidTransaction::Custom(6).into())
                 }
             }
             Some(Call::set_weights { netuid, .. }) => {

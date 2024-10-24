@@ -1,0 +1,24 @@
+name: Try Runtime Check
+
+on:
+  pull_request:
+    branches: [finney, main, devnet-ready]
+    types: [labeled, unlabeled, synchronize]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  check-finney-migrations:
+    name: check finney migrations
+    runs-on: SubtensorCI
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+      - name: Run Try Runtime Checks
+        uses: "paritytech/try-runtime-gha@v0.1.0"
+        with:
+          runtime-package: "node-subtensor-runtime"
+          node-uri: "wss://entrypoint-finney.opentensor.ai:443"
+          checks: "all"
+          extra-args: "--disable-spec-version-check --no-weight-warnings"

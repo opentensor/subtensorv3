@@ -513,6 +513,24 @@ pub(crate) fn run_to_block(n: u64) {
     }
 }
 
+#[allow(dead_code)]
+pub(crate) fn step_epochs(count: u16, netuid: u16) {
+    for _ in 0..count {
+        let blocks_to_next_epoch = SubtensorModule::blocks_until_next_epoch(
+            netuid,
+            SubtensorModule::get_tempo(netuid),
+            SubtensorModule::get_current_block_as_u64(),
+        );
+        step_block(blocks_to_next_epoch as u16);
+
+        assert!(SubtensorModule::should_run_epoch(
+            netuid,
+            SubtensorModule::get_current_block_as_u64()
+        ));
+        step_block(1);
+    }
+}
+
 /// Increments current block by `1`, running all hooks associated with doing so, and asserts
 /// that the block number was in fact incremented.
 ///

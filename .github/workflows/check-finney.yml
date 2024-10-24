@@ -51,5 +51,5 @@ jobs:
         with:
           runtime-package: "node-subtensor-runtime"
           node-uri: "wss://entrypoint-finney.opentensor.ai:443"
-          checks: "pre-and-post"
+          checks: "all"
           extra-args: "--disable-spec-version-check --no-weight-warnings"
