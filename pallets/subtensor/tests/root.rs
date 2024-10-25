@@ -984,6 +984,310 @@ fn test_dissolve_network_does_not_exist_err() {
 }
 
 #[test]
+fn test_dissolve_network_unstake_nominators_ok() {
+    new_test_ext(1).execute_with(|| {
+        let netuid: u16 = 30;
+        let hotkey = U256::from(1);
+        let coldkey = U256::from(2);
+        let stake: u64 = 1000;
+
+        // Set up the network and stake
+        add_network(netuid, 0, 0);
+        pallet_subtensor::SubnetOwner::<Test>::insert(netuid, coldkey);
+        register_ok_neuron(netuid, hotkey, coldkey, 3);
+
+        SubtensorModule::add_balance_to_coldkey_account(&coldkey, 10);
+        let initial_balance: u64 = SubtensorModule::get_coldkey_balance(&coldkey);
+
+        <pallet_subtensor::Stake<Test>>::insert(hotkey, coldkey, stake);
+        pallet_subtensor::Uids::<Test>::insert(netuid, hotkey, 0);
+
+        // Call the dissolve_network function, which should trigger unstaking
+        assert_ok!(SubtensorModule::dissolve_network(
+            RuntimeOrigin::root(),
+            coldkey,
+            netuid
+        ));
+
+        let new_balance: u64 = SubtensorModule::get_coldkey_balance(&coldkey);
+
+        // Check that the balance was correctly updated and the stake was removed
+        assert_eq!(new_balance, initial_balance + stake);
+        assert_eq!(<pallet_subtensor::Stake<Test>>::get(hotkey, coldkey), 0);
+    });
+}
+
+#[test]
+fn test_dissolve_network_unstake_delegate_ok() {
+    new_test_ext(1).execute_with(|| {
+        let netuid: u16 = 30;
+        let hotkey = U256::from(1);
+        let coldkey = U256::from(2);
+        let delegate_coldkey = U256::from(3);
+        let stake: u64 = 1000;
+
+        // Set up the network and associate the coldkey with the hotkey
+        add_network(netuid, 0, 0);
+        pallet_subtensor::SubnetOwner::<Test>::insert(netuid, coldkey);
+        register_ok_neuron(netuid, hotkey, coldkey, 3);
+        <pallet_subtensor::Stake<Test>>::insert(hotkey, coldkey, stake);
+        pallet_subtensor::Uids::<Test>::insert(netuid, hotkey, 0);
+
+        // Insert delegate ownership for the hotkey
+        pallet_subtensor::Owner::<Test>::insert(hotkey, coldkey);
+
+        // Ensure the hotkey is treated as a delegate
+        assert_ok!(SubtensorModule::do_become_delegate(
+            <<Test as Config>::RuntimeOrigin>::signed(coldkey),
+            hotkey,
+            u16::MAX / 10
+        ));
+
+        // Update the owner to the delegate coldkey
+        pallet_subtensor::Owner::<Test>::insert(hotkey, delegate_coldkey);
+
+        let initial_delegate_balance = SubtensorModule::get_coldkey_balance(&delegate_coldkey);
+
+        // Call the dissolve_network function
+        assert_ok!(SubtensorModule::dissolve_network(
+            RuntimeOrigin::root(),
+            coldkey,
+            netuid
+        ));
+
+        let new_delegate_balance: u64 = SubtensorModule::get_coldkey_balance(&delegate_coldkey);
+
+        // Check that the delegate's balance was correctly updated and the stake was removed
+        assert_eq!(new_delegate_balance, initial_delegate_balance + stake);
+        assert_eq!(<pallet_subtensor::Stake<Test>>::get(hotkey, coldkey), 0);
+    });
+}
+
+#[test]
+fn test_dissolve_network_unstake_nominators_and_delegates_partial_match() {
+    new_test_ext(1).execute_with(|| {
+        let netuid1: u16 = 30;
+        let hotkey1 = U256::from(1);
+        let coldkey1 = U256::from(2);
+        let stake1: u64 = 1000;
+
+        let netuid2: u16 = 31;
+        let hotkey2 = U256::from(3);
+        let coldkey2 = U256::from(4);
+        let stake2: u64 = 500;
+
+        // Set up two distinct networks and stakes
+        add_network(netuid1, 0, 0);
+        add_network(netuid2, 0, 0);
+        pallet_subtensor::SubnetOwner::<Test>::insert(netuid1, coldkey1);
+        pallet_subtensor::SubnetOwner::<Test>::insert(netuid2, coldkey2);
+        register_ok_neuron(netuid1, hotkey1, coldkey1, 3);
+        register_ok_neuron(netuid2, hotkey2, coldkey2, 3);
+        <pallet_subtensor::Stake<Test>>::insert(hotkey1, coldkey1, stake1);
+        <pallet_subtensor::Stake<Test>>::insert(hotkey2, coldkey2, stake2);
+        pallet_subtensor::Uids::<Test>::insert(netuid1, hotkey1, 0); // Only hotkey1 is in Uids for the first network
+
+        let initial_balance1: u64 = SubtensorModule::get_coldkey_balance(&coldkey1);
+        let initial_balance2: u64 = SubtensorModule::get_coldkey_balance(&coldkey2);
+
+        // Call the dissolve_network function on the second network, which should only affect hotkey2
+        assert_ok!(SubtensorModule::dissolve_network(
+            RuntimeOrigin::root(),
+            coldkey2,
+            netuid2
+        ));
+
+        let new_balance1: u64 = SubtensorModule::get_coldkey_balance(&coldkey1);
+        let new_balance2: u64 = SubtensorModule::get_coldkey_balance(&coldkey2);
+
+        // Check that only the second network's stake was removed and balance updated
+        assert_eq!(new_balance1, initial_balance1);
+        assert_eq!(new_balance2, initial_balance2 + stake2); // Only change for hotkey2
+        assert_eq!(
+            <pallet_subtensor::Stake<Test>>::get(hotkey1, coldkey1),
+            stake1
+        );
+        assert_eq!(<pallet_subtensor::Stake<Test>>::get(hotkey2, coldkey2), 0);
+    });
+}
+
+#[test]
+fn test_dissolve_network_unstake_multiple_stakes_same_hotkey() {
+    new_test_ext(1).execute_with(|| {
+        let netuid: u16 = 30;
+        let hotkey = U256::from(1);
+        let coldkey1 = U256::from(2);
+        let coldkey2 = U256::from(3);
+        let stake1: u64 = 1000;
+        let stake2: u64 = 500;
+
+        // Set up the network and multiple stakes
+        add_network(netuid, 0, 0);
+        pallet_subtensor::SubnetOwner::<Test>::insert(netuid, coldkey1);
+        register_ok_neuron(netuid, hotkey, coldkey1, 3);
+        <pallet_subtensor::Stake<Test>>::insert(hotkey, coldkey1, stake1);
+        <pallet_subtensor::Stake<Test>>::insert(hotkey, coldkey2, stake2);
+        pallet_subtensor::Uids::<Test>::insert(netuid, hotkey, 0);
+
+        let initial_balance1: u64 = SubtensorModule::get_coldkey_balance(&coldkey1);
+        let initial_balance2: u64 = SubtensorModule::get_coldkey_balance(&coldkey2);
+
+        // Call the dissolve_network function
+        assert_ok!(SubtensorModule::dissolve_network(
+            RuntimeOrigin::root(),
+            coldkey1,
+            netuid
+        ));
+
+        let new_balance1: u64 = SubtensorModule::get_coldkey_balance(&coldkey1);
+        let new_balance2: u64 = SubtensorModule::get_coldkey_balance(&coldkey2);
+
+        // Check that both stakes were removed and the balances updated
+        assert_eq!(new_balance1, initial_balance1 + stake1);
+        assert_eq!(new_balance2, initial_balance2 + stake2);
+        assert_eq!(<pallet_subtensor::Stake<Test>>::get(hotkey, coldkey1), 0);
+        assert_eq!(<pallet_subtensor::Stake<Test>>::get(hotkey, coldkey2), 0);
+    });
+}
+
+#[test]
+fn test_dissolve_network_complex_state() {
+    new_test_ext(1).execute_with(|| {
+        let num_networks = 10;
+        let mut netuids = vec![];
+        let mut hotkeys = vec![];
+        let mut coldkeys = vec![];
+        let mut stakes = vec![];
+        let mut subnet_owners = vec![];
+        let mut initial_balances = vec![];
+
+        // Setup: Create 10 networks and populate each with hotkeys, coldkeys, and stakes
+        for netuid in 1..=num_networks {
+            let hotkey_base = U256::from(netuid * 10 + 1);
+            let coldkey_base = U256::from(netuid * 10 + 2);
+
+            netuids.push(netuid);
+            subnet_owners.push(coldkey_base);
+
+            add_network(netuid, 0, 0);
+            pallet_subtensor::SubnetOwner::<Test>::insert(netuid, coldkey_base);
+            SubtensorModule::set_max_registrations_per_block(netuid, 4096);
+            SubtensorModule::set_target_registrations_per_interval(netuid, 9999);
+
+            for i in 1..=5 {
+                // 5 UIDs in each network
+                let hotkey = U256::from(hotkey_base.as_u64() + i);
+                let coldkey = U256::from(coldkey_base.as_u64() + i);
+
+                let initial_balance = SubtensorModule::get_coldkey_balance(&coldkey_base);
+                let new_balance = initial_balance + i * 2;
+                initial_balances.push(new_balance);
+                SubtensorModule::add_balance_to_coldkey_account(&coldkey, new_balance);
+
+                hotkeys.push(hotkey);
+                coldkeys.push(coldkey);
+
+                // Alternate between having stake and no stake
+                if i % 2 == 0 {
+                    let stake = (i + 1) * 1000;
+                    stakes.push(stake);
+
+                    register_ok_neuron(netuid, hotkey, coldkey, 3);
+                    <pallet_subtensor::Stake<Test>>::insert(hotkey, coldkey, stake);
+
+                    log::debug!(
+                        "Registered neuron {} in network {} with coldkey {} and stake {}",
+                        hotkey,
+                        netuid,
+                        coldkey,
+                        stake
+                    );
+                } else if i % 3 == 0 {
+                    let stake = (i + 1) * 1000;
+                    stakes.push(stake);
+
+                    register_ok_neuron(netuid, hotkey, coldkey, 3);
+                    <pallet_subtensor::Stake<Test>>::insert(hotkey, coldkey, stake);
+
+                    assert_ok!(SubtensorModule::do_become_delegate(
+                        <<Test as Config>::RuntimeOrigin>::signed(coldkey),
+                        hotkey,
+                        u16::MAX / 10
+                    ));
+
+                    log::debug!(
+                        "Registered neuron as delegate {} in network {} with coldkey {} and stake {}",
+                        hotkey,
+                        netuid,
+                        coldkey,
+                        stake
+                    );
+                } else {
+                    stakes.push(0); // No stake for this UID
+                    register_ok_neuron(netuid, hotkey, coldkey, 3);
+
+                    log::debug!(
+                        "Registered neuron {} in network {} with coldkey {}, no stake",
+                        hotkey,
+                        netuid,
+                        coldkey
+                    );
+                }
+
+                pallet_subtensor::Uids::<Test>::insert(netuid, hotkey, i as u16);
+            }
+        }
+
+        // Test: Dissolve each network and ensure correct unstaking behavior
+        for (netuid, subnet_owner) in netuids.iter().zip(subnet_owners.iter()) {
+            log::debug!(
+                "Dissolving network {} with subnet owner {}",
+                netuid,
+                subnet_owner
+            );
+            assert_ok!(SubtensorModule::dissolve_network(
+                RuntimeOrigin::root(),
+                *subnet_owner,
+                *netuid
+            ));
+        }
+
+        // Verify: Check that all stakes were correctly unstaked and balances updated for stakeholders
+        for i in 0..hotkeys.len() {
+            let hotkey = &hotkeys[i];
+            let coldkey = &coldkeys[i];
+            let stake = stakes[i];
+
+            log::debug!(
+                "Checking stake for hotkey {} and coldkey {}: stake = {}",
+                hotkey,
+                coldkey,
+                stake
+            );
+
+            let staking_key = if SubtensorModule::hotkey_is_delegate(hotkey) {
+                pallet_subtensor::Owner::<Test>::get(hotkey)
+            } else {
+                *coldkey
+            };
+
+            let new_balance = SubtensorModule::get_coldkey_balance(&staking_key);
+
+            log::debug!(
+                "Hotkey {} has staking key {}. New balance is {}, expected stake is {}",
+                hotkey,
+                staking_key,
+                new_balance,
+                stake
+            );
+
+            assert_eq!(new_balance, stake + initial_balances[i]);
+            assert_eq!(<pallet_subtensor::Stake<Test>>::get(hotkey, coldkey), 0);
+        }
+    });
+}
+
+#[test]
 fn test_user_add_network_with_identity_fields_ok() {
     new_test_ext(1).execute_with(|| {
         let coldkey_1 = U256::from(1);

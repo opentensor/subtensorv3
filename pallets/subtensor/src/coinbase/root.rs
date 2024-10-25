@@ -1140,30 +1140,47 @@ impl<T: Config> Pallet<T> {
         let owner_coldkey: T::AccountId = SubnetOwner::<T>::get(netuid);
         let reserved_amount: u64 = Self::get_subnet_locked_balance(netuid);
 
-        // --- 2. Remove network count.
+        // --- 2. Unstake nominators and delegates
+        <Stake<T> as IterableStorageDoubleMap<T::AccountId, T::AccountId, u64>>::iter().for_each(
+            |(hotkey, coldkey, stake)| {
+                if !Uids::<T>::contains_key(netuid, &hotkey) {
+                    return;
+                }
+
+                let staking_key = match Self::hotkey_is_delegate(&hotkey) {
+                    true => Owner::<T>::get(&hotkey),
+                    false => coldkey.clone(),
+                };
+
+                Self::add_balance_to_coldkey_account(&staking_key, stake);
+                Self::decrease_stake_on_coldkey_hotkey_account(&coldkey, &hotkey, stake);
+            },
+        );
+
+        // --- 3. Remove network count.
         SubnetworkN::<T>::remove(netuid);
 
-        // --- 3. Remove network modality storage.
+        // --- 4. Remove network modality storage.
         NetworkModality::<T>::remove(netuid);
 
-        // --- 4. Remove netuid from added networks.
+        // --- 5. Remove netuid from added networks.
         NetworksAdded::<T>::remove(netuid);
 
-        // --- 5. Decrement the network counter.
+        // --- 6. Decrement the network counter.
         TotalNetworks::<T>::mutate(|n: &mut u16| *n = n.saturating_sub(1));
 
-        // --- 6. Remove various network-related storages.
+        // --- 7. Remove various network-related storages.
         NetworkRegisteredAt::<T>::remove(netuid);
 
-        // --- 7. Remove incentive mechanism memory.
+        // --- 8. Remove incentive mechanism memory.
         let _ = Uids::<T>::clear_prefix(netuid, u32::MAX, None);
         let _ = Keys::<T>::clear_prefix(netuid, u32::MAX, None);
         let _ = Bonds::<T>::clear_prefix(netuid, u32::MAX, None);
 
-        // --- 8. Removes the weights for this subnet (do not remove).
+        // --- 9. Removes the weights for this subnet (do not remove).
         let _ = Weights::<T>::clear_prefix(netuid, u32::MAX, None);
 
-        // --- 9. Iterate over stored weights and fill the matrix.
+        // --- 10. Iterate over stored weights and fill the matrix.
         for (uid_i, weights_i) in
             <Weights<T> as IterableStorageDoubleMap<u16, u16, Vec<(u16, u16)>>>::iter_prefix(
                 Self::get_root_netuid(),
@@ -1181,7 +1198,7 @@ impl<T: Config> Pallet<T> {
             Weights::<T>::insert(Self::get_root_netuid(), uid_i, modified_weights);
         }
 
-        // --- 10. Remove various network-related parameters.
+        // --- 11. Remove various network-related parameters.
         Rank::<T>::remove(netuid);
         Trust::<T>::remove(netuid);
         Active::<T>::remove(netuid);
@@ -1194,7 +1211,7 @@ impl<T: Config> Pallet<T> {
         ValidatorPermit::<T>::remove(netuid);
         ValidatorTrust::<T>::remove(netuid);
 
-        // --- 11. Erase network parameters.
+        // --- 12. Erase network parameters.
         Tempo::<T>::remove(netuid);
         Kappa::<T>::remove(netuid);
         Difficulty::<T>::remove(netuid);
@@ -1208,12 +1225,12 @@ impl<T: Config> Pallet<T> {
         POWRegistrationsThisInterval::<T>::remove(netuid);
         BurnRegistrationsThisInterval::<T>::remove(netuid);
 
-        // --- 12. Add the balance back to the owner.
+        // --- 13. Add the balance back to the owner.
         Self::add_balance_to_coldkey_account(&owner_coldkey, reserved_amount);
         Self::set_subnet_locked_balance(netuid, 0);
         SubnetOwner::<T>::remove(netuid);
 
-        // --- 13. Remove subnet identity if it exists.
+        // --- 14. Remove subnet identity if it exists.
         if SubnetIdentities::<T>::contains_key(netuid) {
             SubnetIdentities::<T>::remove(netuid);
             Self::deposit_event(Event::SubnetIdentityRemoved(netuid));
