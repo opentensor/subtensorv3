@@ -120,7 +120,7 @@ impl<T: Config> Pallet<T> {
     ///
     pub fn get_stake_for_uid_and_subnetwork(netuid: u16, neuron_uid: u16) -> u64 {
         if let Ok(hotkey) = Self::get_hotkey_for_net_and_uid(netuid, neuron_uid) {
-            Self::get_total_stake_for_hotkey(&hotkey)
+            Self::get_stake_for_hotkey_on_subnet(&hotkey, netuid)
         } else {
             0
         }

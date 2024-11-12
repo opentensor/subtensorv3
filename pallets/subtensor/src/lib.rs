@@ -1299,7 +1299,7 @@ pub mod pallet {
         /// Returns the transaction priority for setting weights.
         pub fn get_priority_set_weights(hotkey: &T::AccountId, netuid: u16) -> u64 {
             if let Ok(uid) = Self::get_uid_for_net_and_hotkey(netuid, hotkey) {
-                let _stake = Self::get_total_stake_for_hotkey(hotkey);
+                let _stake = Self::get_stake_for_hotkey_on_subnet(hotkey, netuid);
                 let current_block_number: u64 = Self::get_current_block_as_u64();
                 let default_priority: u64 =
                     current_block_number.saturating_sub(Self::get_last_update_for_uid(netuid, uid));
@@ -1309,9 +1309,9 @@ pub mod pallet {
         }
 
         /// Is the caller allowed to set weights
-        pub fn check_weights_min_stake(hotkey: &T::AccountId) -> bool {
+        pub fn check_weights_min_stake(hotkey: &T::AccountId, netuid: u16) -> bool {
             // Blacklist weights transactions for low stake peers.
-            Self::get_total_stake_for_hotkey(hotkey) >= Self::get_weights_min_stake()
+            Self::get_stake_for_hotkey_on_subnet(hotkey, netuid) >= Self::get_weights_min_stake()
         }
 
         /// Helper function to check if register is allowed
@@ -1404,8 +1404,8 @@ where
         Pallet::<T>::get_priority_set_weights(who, netuid)
     }
 
-    pub fn check_weights_min_stake(who: &T::AccountId) -> bool {
-        Pallet::<T>::check_weights_min_stake(who)
+    pub fn check_weights_min_stake(who: &T::AccountId, netuid: u16) -> bool {
+        Pallet::<T>::check_weights_min_stake(who, netuid)
     }
 }
 
@@ -1443,7 +1443,7 @@ where
     ) -> TransactionValidity {
         match call.is_sub_type() {
             Some(Call::commit_weights { netuid, .. }) => {
-                if Self::check_weights_min_stake(who) {
+                if Self::check_weights_min_stake(who, *netuid) {
                     let priority: u64 = Self::get_priority_set_weights(who, *netuid);
                     Ok(ValidTransaction {
                         priority,
@@ -1455,7 +1455,7 @@ where
                 }
             }
             Some(Call::reveal_weights { netuid, .. }) => {
-                if Self::check_weights_min_stake(who) {
+                if Self::check_weights_min_stake(who, *netuid) {
                     let priority: u64 = Self::get_priority_set_weights(who, *netuid);
                     Ok(ValidTransaction {
                         priority,
@@ -1467,7 +1467,7 @@ where
                 }
             }
             Some(Call::batch_reveal_weights { netuid, .. }) => {
-                if Self::check_weights_min_stake(who) {
+                if Self::check_weights_min_stake(who, *netuid) {
                     let priority: u64 = Self::get_priority_set_weights(who, *netuid);
                     Ok(ValidTransaction {
                         priority,
@@ -1479,7 +1479,7 @@ where
                 }
             }
             Some(Call::set_weights { netuid, .. }) => {
-                if Self::check_weights_min_stake(who) {
+                if Self::check_weights_min_stake(who, *netuid) {
                     let priority: u64 = Self::get_priority_set_weights(who, *netuid);
                     Ok(ValidTransaction {
                         priority,
@@ -1491,7 +1491,7 @@ where
                 }
             }
             Some(Call::set_root_weights { netuid, hotkey, .. }) => {
-                if Self::check_weights_min_stake(hotkey) {
+                if Self::check_weights_min_stake(hotkey, *netuid) {
                     let priority: u64 = Self::get_priority_set_weights(hotkey, *netuid);
                     Ok(ValidTransaction {
                         priority,

@@ -481,11 +481,11 @@ fn test_set_weights_min_stake_failed() {
 
         // Check the signed extension function.
         assert_eq!(SubtensorModule::get_weights_min_stake(), 20_000_000_000_000);
-        assert!(!SubtensorModule::check_weights_min_stake(&hotkey));
+        assert!(!SubtensorModule::check_weights_min_stake(&hotkey, netuid));
         SubtensorModule::increase_stake_on_hotkey_account(&hotkey, 19_000_000_000_000);
-        assert!(!SubtensorModule::check_weights_min_stake(&hotkey));
+        assert!(!SubtensorModule::check_weights_min_stake(&hotkey, netuid));
         SubtensorModule::increase_stake_on_hotkey_account(&hotkey, 20_000_000_000_000);
-        assert!(SubtensorModule::check_weights_min_stake(&hotkey));
+        assert!(SubtensorModule::check_weights_min_stake(&hotkey, netuid));
 
         // Check that it fails at the pallet level.
         SubtensorModule::set_weights_min_stake(100_000_000_000_000);

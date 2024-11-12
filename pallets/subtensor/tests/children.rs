@@ -3237,3 +3237,194 @@ fn test_rank_trust_incentive_calculation_with_parent_child() {
 
     });
 }
+
+// SKIP_WASM_BUILD=1 RUST_LOG=debug cargo test --package pallet-subtensor --test children -- test_childkey_set_weights_single_parent --exact --nocapture
+#[test]
+fn test_childkey_set_weights_single_parent() {
+    new_test_ext(1).execute_with(|| {
+        let netuid: u16 = 1;
+        add_network(netuid, 1, 0);
+
+        // Define hotkeys
+        let parent: U256 = U256::from(1);
+        let child: U256 = U256::from(2);
+        let weight_setter: U256 = U256::from(3);
+
+        // Define coldkeys with more readable names
+        let coldkey_parent: U256 = U256::from(100);
+        let coldkey_child: U256 = U256::from(101);
+        let coldkey_weight_setter: U256 = U256::from(102);
+
+        let stake_to_give_child = 109_999;
+
+        // Register parent with minimal stake and child with high stake
+        SubtensorModule::add_balance_to_coldkey_account(&coldkey_parent, 1);
+        SubtensorModule::add_balance_to_coldkey_account(&coldkey_child, stake_to_give_child + 10);
+        SubtensorModule::add_balance_to_coldkey_account(&coldkey_weight_setter, 1_000_000);
+
+        // Add neurons for parent, child and weight_setter
+        register_ok_neuron(netuid, parent, coldkey_parent, 1);
+        register_ok_neuron(netuid, child, coldkey_child, 1);
+        register_ok_neuron(netuid, weight_setter, coldkey_weight_setter, 1);
+
+        SubtensorModule::increase_stake_on_coldkey_hotkey_account(
+            &coldkey_parent,
+            &parent,
+            stake_to_give_child,
+        );
+        SubtensorModule::increase_stake_on_coldkey_hotkey_account(
+            &coldkey_weight_setter,
+            &weight_setter,
+            1_000_000,
+        );
+
+        SubtensorModule::set_weights_set_rate_limit(netuid, 0);
+
+        // Set parent-child relationship
+        assert_ok!(SubtensorModule::do_set_children(
+            RuntimeOrigin::signed(coldkey_parent),
+            parent,
+            netuid,
+            vec![(u64::MAX, child)]
+        ));
+        step_block(7200 + 1);
+        // Set weights on the child using the weight_setter account
+        let origin = RuntimeOrigin::signed(weight_setter);
+        let uids: Vec<u16> = vec![1]; // Only set weight for the child (UID 1)
+        let values: Vec<u16> = vec![u16::MAX]; // Use maximum value for u16
+        let version_key = SubtensorModule::get_weights_version_key(netuid);
+        assert_ok!(SubtensorModule::set_weights(
+            origin,
+            netuid,
+            uids.clone(),
+            values.clone(),
+            version_key
+        ));
+
+        // Set the min stake very high
+        SubtensorModule::set_weights_min_stake(stake_to_give_child * 5);
+
+        // Check the child has less stake than required
+        assert!(
+            SubtensorModule::get_stake_for_hotkey_on_subnet(&child, netuid)
+                < SubtensorModule::get_weights_min_stake()
+        );
+
+        // Check the child cannot set weights
+        assert_noop!(
+            SubtensorModule::set_weights(
+                RuntimeOrigin::signed(child),
+                netuid,
+                uids.clone(),
+                values.clone(),
+                version_key
+            ),
+            Error::<Test>::NotEnoughStakeToSetWeights
+        );
+
+        assert!(!SubtensorModule::check_weights_min_stake(&child, netuid));
+
+        // Set a minimum stake to set weights
+        SubtensorModule::set_weights_min_stake(stake_to_give_child - 5);
+
+        // Check if the stake for the child is above
+        assert!(
+            SubtensorModule::get_stake_for_hotkey_on_subnet(&child, netuid)
+                >= SubtensorModule::get_weights_min_stake()
+        );
+
+        // Check the child can set weights
+        assert_ok!(SubtensorModule::set_weights(
+            RuntimeOrigin::signed(child),
+            netuid,
+            uids,
+            values,
+            version_key
+        ));
+
+        assert!(SubtensorModule::check_weights_min_stake(&child, netuid));
+    });
+}
+
+// SKIP_WASM_BUILD=1 RUST_LOG=debug cargo test --package pallet-subtensor --test children -- test_set_weights_no_parent --exact --nocapture
+#[test]
+fn test_set_weights_no_parent() {
+    // Verify that a regular key without a parent delegation is effected by the minimum stake requirements
+    new_test_ext(1).execute_with(|| {
+        let netuid: u16 = 1;
+        add_network(netuid, 1, 0);
+
+        let hotkey: U256 = U256::from(2);
+        let spare_hk: U256 = U256::from(3);
+
+        let coldkey: U256 = U256::from(101);
+        let spare_ck = U256::from(102);
+
+        let stake_to_give_child = 109_999;
+
+        SubtensorModule::add_balance_to_coldkey_account(&coldkey, stake_to_give_child + 10);
+
+        // Is registered
+        register_ok_neuron(netuid, hotkey, coldkey, 1);
+        // Register a spare key
+        register_ok_neuron(netuid, spare_hk, spare_ck, 1);
+
+        SubtensorModule::increase_stake_on_coldkey_hotkey_account(
+            &coldkey,
+            &hotkey,
+            stake_to_give_child,
+        );
+
+        SubtensorModule::set_weights_set_rate_limit(netuid, 0);
+
+        // Has stake and no parent
+        step_block(7200 + 1);
+
+        let uids: Vec<u16> = vec![1]; // Set weights on the other hotkey
+        let values: Vec<u16> = vec![u16::MAX]; // Use maximum value for u16
+        let version_key = SubtensorModule::get_weights_version_key(netuid);
+
+        // Set the min stake very high
+        SubtensorModule::set_weights_min_stake(stake_to_give_child * 5);
+
+        // Check the key has less stake than required
+        assert!(
+            SubtensorModule::get_stake_for_hotkey_on_subnet(&hotkey, netuid)
+                < SubtensorModule::get_weights_min_stake()
+        );
+
+        // Check the hotkey cannot set weights
+        assert_noop!(
+            SubtensorModule::set_weights(
+                RuntimeOrigin::signed(hotkey),
+                netuid,
+                uids.clone(),
+                values.clone(),
+                version_key
+            ),
+            Error::<Test>::NotEnoughStakeToSetWeights
+        );
+
+        assert!(!SubtensorModule::check_weights_min_stake(&hotkey, netuid));
+
+        // Set a minimum stake to set weights
+        SubtensorModule::set_weights_min_stake(stake_to_give_child - 5);
+
+        // Check if the stake for the hotkey is above
+        assert!(
+            SubtensorModule::get_stake_for_hotkey_on_subnet(&hotkey, netuid)
+                >= SubtensorModule::get_weights_min_stake()
+        );
+
+        // Check the hotkey can set weights
+        assert_ok!(SubtensorModule::set_weights(
+            RuntimeOrigin::signed(hotkey),
+            netuid,
+            uids,
+            values,
+            version_key
+        ));
+
+        assert!(SubtensorModule::check_weights_min_stake(&hotkey, netuid));
+    });
+}

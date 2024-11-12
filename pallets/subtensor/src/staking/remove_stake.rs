@@ -76,6 +76,11 @@ impl<T: Config> Pallet<T> {
         // We remove the balance from the hotkey.
         Self::decrease_stake_on_coldkey_hotkey_account(&coldkey, &hotkey, stake_to_be_removed);
 
+        // Track this removal in the stake delta.
+        StakeDeltaSinceLastEmissionDrain::<T>::mutate(&hotkey, &coldkey, |stake_delta| {
+            *stake_delta = stake_delta.saturating_sub_unsigned(stake_to_be_removed as u128);
+        });
+
         // We add the balance to the coldkey.  If the above fails we will not credit this coldkey.
         Self::add_balance_to_coldkey_account(&coldkey, stake_to_be_removed);
 
