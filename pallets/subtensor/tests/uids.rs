@@ -52,17 +52,50 @@ fn test_replace_neuron() {
         // Get UID
         let neuron_uid = SubtensorModule::get_uid_for_net_and_hotkey(netuid, &hotkey_account_id);
         assert_ok!(neuron_uid);
+        let neuron_uid = neuron_uid.unwrap();
+
+        // set non-default values
+        Trust::<Test>::mutate(netuid, |v| {
+            SubtensorModule::set_element_at(v, neuron_uid as usize, 5u16)
+        });
+        Emission::<Test>::mutate(netuid, |v| {
+            SubtensorModule::set_element_at(v, neuron_uid as usize, 5u64)
+        });
+        Consensus::<Test>::mutate(netuid, |v| {
+            SubtensorModule::set_element_at(v, neuron_uid as usize, 5u16)
+        });
+        Incentive::<Test>::mutate(netuid, |v| {
+            SubtensorModule::set_element_at(v, neuron_uid as usize, 5u16)
+        });
+        Dividends::<Test>::mutate(netuid, |v| {
+            SubtensorModule::set_element_at(v, neuron_uid as usize, 5u16)
+        });
+
+        // serve axon mock address
+        let ip: u128 = 1676056785;
+        let port: u16 = 9999;
+        let ip_type: u8 = 4;
+        let hotkey = SubtensorModule::get_hotkey_for_net_and_uid(netuid, neuron_uid).unwrap();
+        assert!(SubtensorModule::serve_axon(
+            <<Test as Config>::RuntimeOrigin>::signed(hotkey_account_id),
+            netuid,
+            0,
+            ip,
+            port,
+            ip_type,
+            0,
+            0,
+            0
+        )
+        .is_ok());
 
         // Set a neuron certificate for it
         NeuronCertificates::<Test>::insert(netuid, hotkey_account_id, certificate);
 
         // Replace the neuron.
-        SubtensorModule::replace_neuron(
-            netuid,
-            neuron_uid.unwrap(),
-            &new_hotkey_account_id,
-            block_number,
-        );
+        SubtensorModule::replace_neuron(netuid, neuron_uid, &new_hotkey_account_id, block_number);
+
+        assert!(!SubtensorModule::has_axon_info(netuid, &hotkey));
 
         // Check old hotkey is not registered on any network.
         assert!(SubtensorModule::get_uid_for_net_and_hotkey(netuid, &hotkey_account_id).is_err());
@@ -70,7 +103,7 @@ fn test_replace_neuron() {
             &hotkey_account_id
         ));
 
-        let curr_hotkey = SubtensorModule::get_hotkey_for_net_and_uid(netuid, neuron_uid.unwrap());
+        let curr_hotkey = SubtensorModule::get_hotkey_for_net_and_uid(netuid, neuron_uid);
         assert_ok!(curr_hotkey);
         assert_ne!(curr_hotkey.unwrap(), hotkey_account_id);
 
@@ -86,6 +119,33 @@ fn test_replace_neuron() {
         // Check neuron certificate was reset
         let certificate = NeuronCertificates::<Test>::get(netuid, hotkey_account_id);
         assert_eq!(certificate, None);
+
+        // Check trust, emission, consensus, incentive, dividends have been reset to 0.
+        assert_eq!(SubtensorModule::get_trust_for_uid(netuid, neuron_uid), 0);
+        assert_eq!(SubtensorModule::get_emission_for_uid(netuid, neuron_uid), 0);
+        assert_eq!(
+            SubtensorModule::get_consensus_for_uid(netuid, neuron_uid),
+            0
+        );
+        assert_eq!(
+            SubtensorModule::get_incentive_for_uid(netuid, neuron_uid),
+            0
+        );
+        assert_eq!(
+            SubtensorModule::get_dividends_for_uid(netuid, neuron_uid),
+            0
+        );
+
+        assert!(!SubtensorModule::has_axon_info(
+            netuid,
+            &new_hotkey_account_id
+        ));
+
+        // Check axon info is reset.
+        let axon_info = SubtensorModule::get_axon_info(netuid, &curr_hotkey.unwrap());
+        assert_eq!(axon_info.ip, 0);
+        assert_eq!(axon_info.port, 0);
+        assert_eq!(axon_info.ip_type, 0);
     });
 }
 
