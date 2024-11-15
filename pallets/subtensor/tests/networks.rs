@@ -282,3 +282,292 @@ fn test_schedule_dissolve_network_execution_with_coldkey_swap() {
         assert!(!SubtensorModule::if_subnet_exist(netuid));
     })
 }
+
+#[test]
+fn test_get_network_lock_cost_last_lock_block_zero() {
+    new_test_ext(1).execute_with(|| {
+        let last_lock = 0u64;
+        let min_lock = 1000u64;
+        let last_lock_block = 0u64;
+        let current_block = 1u64;
+        let lock_reduction_interval = 10u64;
+
+        pallet_subtensor::NetworkLastLockCost::<Test>::put(last_lock);
+        pallet_subtensor::NetworkMinLockCost::<Test>::put(min_lock);
+        pallet_subtensor::NetworkLastRegistered::<Test>::put(last_lock_block);
+        System::set_block_number(current_block);
+        pallet_subtensor::NetworkLockReductionInterval::<Test>::put(lock_reduction_interval);
+
+        // Expected values
+        let mult = if last_lock_block == 0 { 1 } else { 2 };
+        assert_eq!(mult, 1);
+
+        let mut lock_cost = last_lock.saturating_mul(mult).saturating_sub(
+            last_lock
+                .saturating_div(lock_reduction_interval)
+                .saturating_mul(current_block.saturating_sub(last_lock_block)),
+        );
+
+        if lock_cost < min_lock {
+            lock_cost = min_lock;
+        }
+
+        let lock_cost_from_fn = SubtensorModule::get_network_lock_cost();
+
+        assert_eq!(lock_cost_from_fn, lock_cost);
+        assert_eq!(lock_cost_from_fn, min_lock);
+    });
+}
+
+#[test]
+fn test_get_network_lock_cost_last_lock_block_nonzero_no_time_passed() {
+    new_test_ext(1).execute_with(|| {
+        let last_lock = 2000u64;
+        let min_lock = 1000u64;
+        let last_lock_block = 1u64;
+        let current_block = 1u64;
+        let lock_reduction_interval = 10u64;
+
+        pallet_subtensor::NetworkLastLockCost::<Test>::put(last_lock);
+        pallet_subtensor::NetworkMinLockCost::<Test>::put(min_lock);
+        pallet_subtensor::NetworkLastRegistered::<Test>::put(last_lock_block);
+        System::set_block_number(current_block);
+        pallet_subtensor::NetworkLockReductionInterval::<Test>::put(lock_reduction_interval);
+
+        // Expected values
+        let mult = if last_lock_block == 0 { 1 } else { 2 };
+        assert_eq!(mult, 2);
+
+        let mut lock_cost = last_lock.saturating_mul(mult).saturating_sub(
+            last_lock
+                .saturating_div(lock_reduction_interval)
+                .saturating_mul(current_block.saturating_sub(last_lock_block)),
+        );
+
+        if lock_cost < min_lock {
+            lock_cost = min_lock;
+        }
+
+        let lock_cost_from_fn = SubtensorModule::get_network_lock_cost();
+
+        assert_eq!(lock_cost_from_fn, lock_cost);
+        assert_eq!(lock_cost_from_fn, 4000u64);
+    });
+}
+
+#[test]
+fn test_get_network_lock_cost_time_passed_reduction() {
+    new_test_ext(1).execute_with(|| {
+        let last_lock = 2000u64;
+        let min_lock = 1000u64;
+        let last_lock_block = 1u64;
+        let current_block = 11u64; // 10 blocks later
+        let lock_reduction_interval = 10u64;
+
+        pallet_subtensor::NetworkLastLockCost::<Test>::put(last_lock);
+        pallet_subtensor::NetworkMinLockCost::<Test>::put(min_lock);
+        pallet_subtensor::NetworkLastRegistered::<Test>::put(last_lock_block);
+        System::set_block_number(current_block);
+        pallet_subtensor::NetworkLockReductionInterval::<Test>::put(lock_reduction_interval);
+
+        // Expected values
+        let mult = if last_lock_block == 0 { 1 } else { 2 };
+        assert_eq!(mult, 2);
+
+        let reduction = last_lock
+            .saturating_div(lock_reduction_interval)
+            .saturating_mul(current_block.saturating_sub(last_lock_block));
+
+        let mut lock_cost = last_lock.saturating_mul(mult).saturating_sub(reduction);
+
+        if lock_cost < min_lock {
+            lock_cost = min_lock;
+        }
+
+        let lock_cost_from_fn = SubtensorModule::get_network_lock_cost();
+
+        assert_eq!(lock_cost_from_fn, lock_cost);
+        assert_eq!(lock_cost_from_fn, 2000u64);
+    });
+}
+
+#[test]
+fn test_get_network_lock_cost_lock_cost_below_min_lock() {
+    new_test_ext(1).execute_with(|| {
+        let last_lock = 2000u64;
+        let min_lock = 1000u64;
+        let last_lock_block = 1u64;
+        let current_block = 21u64; // 20 blocks later
+        let lock_reduction_interval = 10u64;
+
+        pallet_subtensor::NetworkLastLockCost::<Test>::put(last_lock);
+        pallet_subtensor::NetworkMinLockCost::<Test>::put(min_lock);
+        pallet_subtensor::NetworkLastRegistered::<Test>::put(last_lock_block);
+        System::set_block_number(current_block);
+        pallet_subtensor::NetworkLockReductionInterval::<Test>::put(lock_reduction_interval);
+
+        // Expected values
+        let mult = if last_lock_block == 0 { 1 } else { 2 };
+        assert_eq!(mult, 2);
+
+        let reduction = last_lock
+            .saturating_div(lock_reduction_interval)
+            .saturating_mul(current_block.saturating_sub(last_lock_block));
+
+        let mut lock_cost = last_lock.saturating_mul(mult).saturating_sub(reduction);
+
+        if lock_cost < min_lock {
+            lock_cost = min_lock;
+        }
+
+        let lock_cost_from_fn = SubtensorModule::get_network_lock_cost();
+
+        assert_eq!(lock_cost_from_fn, lock_cost);
+        assert_eq!(lock_cost_from_fn, min_lock);
+    });
+}
+
+#[test]
+fn test_get_network_lock_cost_large_lock_reduction_interval() {
+    new_test_ext(1).execute_with(|| {
+        let last_lock = 2000u64;
+        let min_lock = 1000u64;
+        let last_lock_block = 1u64;
+        let current_block = 100u64;
+        let lock_reduction_interval = u64::MAX;
+
+        pallet_subtensor::NetworkLastLockCost::<Test>::put(last_lock);
+        pallet_subtensor::NetworkMinLockCost::<Test>::put(min_lock);
+        pallet_subtensor::NetworkLastRegistered::<Test>::put(last_lock_block);
+        System::set_block_number(current_block);
+        pallet_subtensor::NetworkLockReductionInterval::<Test>::put(lock_reduction_interval);
+
+        // Expected values
+        let mult = if last_lock_block == 0 { 1 } else { 2 };
+        assert_eq!(mult, 2);
+
+        let reduction = last_lock
+            .saturating_div(lock_reduction_interval)
+            .saturating_mul(current_block.saturating_sub(last_lock_block));
+
+        let mut lock_cost = last_lock.saturating_mul(mult).saturating_sub(reduction);
+
+        if lock_cost < min_lock {
+            lock_cost = min_lock;
+        }
+
+        let lock_cost_from_fn = SubtensorModule::get_network_lock_cost();
+
+        assert_eq!(reduction, 0);
+        assert_eq!(lock_cost_from_fn, lock_cost);
+        assert_eq!(lock_cost_from_fn, 4000u64);
+    });
+}
+
+#[test]
+fn test_get_network_lock_cost_small_lock_reduction_interval() {
+    new_test_ext(1).execute_with(|| {
+        let last_lock = 2000u64;
+        let min_lock = 1000u64;
+        let last_lock_block = 1u64;
+        let current_block = 3u64;
+        let lock_reduction_interval = 1u64;
+
+        pallet_subtensor::NetworkLastLockCost::<Test>::put(last_lock);
+        pallet_subtensor::NetworkMinLockCost::<Test>::put(min_lock);
+        pallet_subtensor::NetworkLastRegistered::<Test>::put(last_lock_block);
+        System::set_block_number(current_block);
+        pallet_subtensor::NetworkLockReductionInterval::<Test>::put(lock_reduction_interval);
+
+        // Expected values
+        let mult = if last_lock_block == 0 { 1 } else { 2 };
+        assert_eq!(mult, 2);
+
+        let reduction = last_lock
+            .saturating_div(lock_reduction_interval)
+            .saturating_mul(current_block.saturating_sub(last_lock_block));
+
+        let mut lock_cost = last_lock.saturating_mul(mult).saturating_sub(reduction);
+
+        if lock_cost < min_lock {
+            lock_cost = min_lock;
+        }
+
+        let lock_cost_from_fn = SubtensorModule::get_network_lock_cost();
+
+        assert_eq!(reduction, 2000 * 2);
+        assert_eq!(lock_cost_from_fn, lock_cost);
+        assert_eq!(lock_cost_from_fn, min_lock);
+    });
+}
+
+#[test]
+fn test_get_network_lock_cost_last_lock_zero_min_lock_zero() {
+    new_test_ext(1).execute_with(|| {
+        let last_lock = 0u64;
+        let min_lock = 0u64;
+        let last_lock_block = 0u64;
+        let current_block = 1u64;
+        let lock_reduction_interval = 10u64;
+
+        pallet_subtensor::NetworkLastLockCost::<Test>::put(last_lock);
+        pallet_subtensor::NetworkMinLockCost::<Test>::put(min_lock);
+        pallet_subtensor::NetworkLastRegistered::<Test>::put(last_lock_block);
+        System::set_block_number(current_block);
+        pallet_subtensor::NetworkLockReductionInterval::<Test>::put(lock_reduction_interval);
+
+        // Expected values
+        let mult = if last_lock_block == 0 { 1 } else { 2 };
+        assert_eq!(mult, 1);
+
+        let reduction = last_lock
+            .saturating_div(lock_reduction_interval)
+            .saturating_mul(current_block.saturating_sub(last_lock_block));
+
+        let mut lock_cost = last_lock.saturating_mul(mult).saturating_sub(reduction);
+
+        if lock_cost < min_lock {
+            lock_cost = min_lock;
+        }
+
+        let lock_cost_from_fn = SubtensorModule::get_network_lock_cost();
+
+        assert_eq!(lock_cost_from_fn, lock_cost);
+        assert_eq!(lock_cost_from_fn, 0u64);
+    });
+}
+
+#[test]
+fn test_get_network_lock_cost_large_last_lock_saturating_arithmetic() {
+    new_test_ext(1).execute_with(|| {
+        let last_lock = u64::MAX / 2;
+        let min_lock = 1000u64;
+        let last_lock_block = 0;
+        let current_block = 3u64;
+        let lock_reduction_interval = 1u64;
+
+        pallet_subtensor::NetworkLastLockCost::<Test>::put(last_lock);
+        pallet_subtensor::NetworkMinLockCost::<Test>::put(min_lock);
+        pallet_subtensor::NetworkLastRegistered::<Test>::put(last_lock_block);
+        System::set_block_number(current_block);
+        pallet_subtensor::NetworkLockReductionInterval::<Test>::put(lock_reduction_interval);
+
+        // Expected reduction calculation
+        let reduction = last_lock
+            .saturating_div(lock_reduction_interval)
+            .saturating_mul(current_block.saturating_sub(last_lock_block));
+
+        // Expected lock_cost calculation
+        let mut lock_cost = last_lock.saturating_mul(2).saturating_sub(reduction);
+
+        if lock_cost < min_lock {
+            lock_cost = min_lock;
+        }
+
+        let lock_cost_from_fn = SubtensorModule::get_network_lock_cost();
+
+        assert_eq!(reduction, u64::MAX);
+        assert_eq!(lock_cost_from_fn, lock_cost);
+        assert_eq!(lock_cost_from_fn, min_lock);
+    });
+}
