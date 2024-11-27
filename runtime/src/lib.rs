@@ -11,7 +11,7 @@ include!(concat!(env!("OUT_DIR"), "/wasm_binary.rs"));
 pub mod check_nonce;
 mod migrations;
 
-use codec::{Decode, Encode, MaxEncodedLen};
+use codec::{Compact, Decode, Encode, MaxEncodedLen};
 use frame_support::traits::Imbalance;
 use frame_support::{
     dispatch::DispatchResultWithPostInfo,
@@ -30,6 +30,12 @@ use pallet_grandpa::{
     fg_primitives, AuthorityId as GrandpaId, AuthorityList as GrandpaAuthorityList,
 };
 use pallet_registry::CanRegisterIdentity;
+use pallet_subtensor::rpc_info::{
+    delegate_info::DelegateInfo,
+    neuron_info::{NeuronInfo, NeuronInfoLite},
+    stake_info::StakeInfo,
+    subnet_info::{SubnetHyperparams, SubnetInfo},
+};
 use scale_info::TypeInfo;
 use smallvec::smallvec;
 use sp_api::impl_runtime_apis;
@@ -1905,110 +1911,58 @@ impl_runtime_apis! {
     }
 
     impl subtensor_custom_rpc_runtime_api::DelegateInfoRuntimeApi<Block> for Runtime {
-        fn get_delegates() -> Vec<u8> {
-            let result = SubtensorModule::get_delegates();
-            result.encode()
+        fn get_delegates() -> Vec<DelegateInfo<AccountId32>> {
+            SubtensorModule::get_delegates()
         }
 
-        fn get_delegate(delegate_account_vec: Vec<u8>) -> Vec<u8> {
-            let _result = SubtensorModule::get_delegate(delegate_account_vec);
-            if _result.is_some() {
-                let result = _result.expect("Could not get DelegateInfo");
-                result.encode()
-            } else {
-                vec![]
-            }
+        fn get_delegate(delegate_account: AccountId32) -> Option<DelegateInfo<AccountId32>> {
+            SubtensorModule::get_delegate(delegate_account)
         }
 
-        fn get_delegated(delegatee_account_vec: Vec<u8>) -> Vec<u8> {
-            let result = SubtensorModule::get_delegated(delegatee_account_vec);
-            result.encode()
+        fn get_delegated(delegatee_account: AccountId32) -> Vec<(DelegateInfo<AccountId32>, Compact<u64>)> {
+            SubtensorModule::get_delegated(delegatee_account)
         }
     }
 
     impl subtensor_custom_rpc_runtime_api::NeuronInfoRuntimeApi<Block> for Runtime {
-        fn get_neurons_lite(netuid: u16) -> Vec<u8> {
-            let result = SubtensorModule::get_neurons_lite(netuid);
-            result.encode()
+        fn get_neurons_lite(netuid: u16) -> Vec<NeuronInfoLite<AccountId32>> {
+            SubtensorModule::get_neurons_lite(netuid)
         }
 
-        fn get_neuron_lite(netuid: u16, uid: u16) -> Vec<u8> {
-            let _result = SubtensorModule::get_neuron_lite(netuid, uid);
-            if _result.is_some() {
-                let result = _result.expect("Could not get NeuronInfoLite");
-                result.encode()
-            } else {
-                vec![]
-            }
+        fn get_neuron_lite(netuid: u16, uid: u16) -> Option<NeuronInfoLite<AccountId32>> {
+            SubtensorModule::get_neuron_lite(netuid, uid)
         }
 
-        fn get_neurons(netuid: u16) -> Vec<u8> {
-            let result = SubtensorModule::get_neurons(netuid);
-            result.encode()
+        fn get_neurons(netuid: u16) -> Vec<NeuronInfo<AccountId32>> {
+            SubtensorModule::get_neurons(netuid)
         }
 
-        fn get_neuron(netuid: u16, uid: u16) -> Vec<u8> {
-            let _result = SubtensorModule::get_neuron(netuid, uid);
-            if _result.is_some() {
-                let result = _result.expect("Could not get NeuronInfo");
-                result.encode()
-            } else {
-                vec![]
-            }
+        fn get_neuron(netuid: u16, uid: u16) -> Option<NeuronInfo<AccountId32>> {
+            SubtensorModule::get_neuron(netuid, uid)
         }
     }
 
     impl subtensor_custom_rpc_runtime_api::SubnetInfoRuntimeApi<Block> for Runtime {
-        fn get_subnet_info(netuid: u16) -> Vec<u8> {
-            let _result = SubtensorModule::get_subnet_info(netuid);
-            if _result.is_some() {
-                let result = _result.expect("Could not get SubnetInfo");
-                result.encode()
-            } else {
-                vec![]
-            }
+        fn get_subnet_info(netuid: u16) -> Option<SubnetInfo<AccountId32>> {
+            SubtensorModule::get_subnet_info(netuid)
         }
 
-        fn get_subnets_info() -> Vec<u8> {
-            let result = SubtensorModule::get_subnets_info();
-            result.encode()
+        fn get_subnets_info() -> Vec<Option<SubnetInfo<AccountId32>>> {
+            SubtensorModule::get_subnets_info()
         }
 
-        fn get_subnet_info_v2(netuid: u16) -> Vec<u8> {
-            let _result = SubtensorModule::get_subnet_info_v2(netuid);
-            if _result.is_some() {
-                let result = _result.expect("Could not get SubnetInfo");
-                result.encode()
-            } else {
-                vec![]
-            }
-        }
-
-        fn get_subnets_info_v2() -> Vec<u8> {
-            let result = SubtensorModule::get_subnets_info_v2();
-            result.encode()
-        }
-
-        fn get_subnet_hyperparams(netuid: u16) -> Vec<u8> {
-            let _result = SubtensorModule::get_subnet_hyperparams(netuid);
-            if _result.is_some() {
-                let result = _result.expect("Could not get SubnetHyperparams");
-                result.encode()
-            } else {
-                vec![]
-            }
+        fn get_subnet_hyperparams(netuid: u16) -> Option<SubnetHyperparams> {
+            SubtensorModule::get_subnet_hyperparams(netuid)
         }
     }
 
     impl subtensor_custom_rpc_runtime_api::StakeInfoRuntimeApi<Block> for Runtime {
-        fn get_stake_info_for_coldkey( coldkey_account_vec: Vec<u8> ) -> Vec<u8> {
-            let result = SubtensorModule::get_stake_info_for_coldkey( coldkey_account_vec );
-            result.encode()
+        fn get_stake_info_for_coldkey( coldkey_account: AccountId32 ) -> Vec<StakeInfo<AccountId32>> {
+            SubtensorModule::get_stake_info_for_coldkey( coldkey_account )
         }
 
-        fn get_stake_info_for_coldkeys( coldkey_account_vecs: Vec<Vec<u8>> ) -> Vec<u8> {
-            let result = SubtensorModule::get_stake_info_for_coldkeys( coldkey_account_vecs );
-            result.encode()
+        fn get_stake_info_for_coldkeys( coldkey_accounts: Vec<AccountId32> ) -> Vec<(AccountId32, Vec<StakeInfo<AccountId32>>)> {
+               SubtensorModule::get_stake_info_for_coldkeys( coldkey_accounts )
         }
     }
 

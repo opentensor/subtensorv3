@@ -49,7 +49,9 @@ manual_inspect = "allow"
 async-trait = "0.1"
 cargo-husky = { version = "1", default-features = false }
 clap = "4.5.4"
-codec = { version = "3.2.2", default-features = false }
+codec = { package = "parity-scale-codec", version = "3.2.2", default-features = false, features = [
+	"derive",
+] }
 ed25519-dalek = { version = "2.1.0", default-features = false, features = ["alloc"] }
 enumflags2 = "0.7.9"
 futures = "0.3.30"

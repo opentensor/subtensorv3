@@ -2,18 +2,19 @@ use super::*;
 use frame_support::pallet_prelude::{Decode, Encode};
 use frame_support::storage::IterableStorageMap;
 use frame_support::IterableStorageDoubleMap;
+use sp_runtime::AccountId32;
 use substrate_fixed::types::U64F64;
 extern crate alloc;
 use codec::Compact;
 use sp_core::hexdisplay::AsBytesRef;
 
-#[freeze_struct("5752e4c650a83e0d")]
-#[derive(Decode, Encode, PartialEq, Eq, Clone, Debug)]
-pub struct DelegateInfo<T: Config> {
-    delegate_ss58: T::AccountId,
+#[freeze_struct("66105c2cfec0608d")]
+#[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo)]
+pub struct DelegateInfo<AccountId: TypeInfo + Encode + Decode> {
+    delegate_ss58: AccountId,
     take: Compact<u16>,
-    nominators: Vec<(T::AccountId, Compact<u64>)>, // map of nominator_ss58 to stake amount
-    owner_ss58: T::AccountId,
+    nominators: Vec<(AccountId, Compact<u64>)>, // map of nominator_ss58 to stake amount
+    owner_ss58: AccountId,
     registrations: Vec<Compact<u16>>, // Vec of netuid this delegate is registered on
     validator_permits: Vec<Compact<u16>>, // Vec of netuid this delegate has validator permit on
     return_per_1000: Compact<u64>, // Delegators current daily return per 1000 TAO staked minus take fee
@@ -21,7 +22,7 @@ pub struct DelegateInfo<T: Config> {
 }
 
 impl<T: Config> Pallet<T> {
-    fn get_delegate_by_existing_account(delegate: AccountIdOf<T>) -> DelegateInfo<T> {
+    fn get_delegate_by_existing_account(delegate: AccountIdOf<T>) -> DelegateInfo<T::AccountId> {
         let mut nominators = Vec::<(T::AccountId, Compact<u64>)>::new();
 
         for (nominator, stake) in
@@ -82,10 +83,8 @@ impl<T: Config> Pallet<T> {
         }
     }
 
-    pub fn get_delegate(delegate_account_vec: Vec<u8>) -> Option<DelegateInfo<T>> {
-        if delegate_account_vec.len() != 32 {
-            return None;
-        }
+    pub fn get_delegate(delegate_account: AccountId32) -> Option<DelegateInfo<T::AccountId>> {
+        let delegate_account_vec = delegate_account.encode();
 
         let delegate: AccountIdOf<T> =
             T::AccountId::decode(&mut delegate_account_vec.as_bytes_ref()).ok()?;
@@ -100,8 +99,8 @@ impl<T: Config> Pallet<T> {
 
     /// get all delegates info from storage
     ///
-    pub fn get_delegates() -> Vec<DelegateInfo<T>> {
-        let mut delegates = Vec::<DelegateInfo<T>>::new();
+    pub fn get_delegates() -> Vec<DelegateInfo<T::AccountId>> {
+        let mut delegates = Vec::<DelegateInfo<T::AccountId>>::new();
         for delegate in <Delegates<T> as IterableStorageMap<T::AccountId, u16>>::iter_keys() {
             let delegate_info = Self::get_delegate_by_existing_account(delegate.clone());
             delegates.push(delegate_info);
@@ -112,12 +111,16 @@ impl<T: Config> Pallet<T> {
 
     /// get all delegate info and staked token amount for a given delegatee account
     ///
-    pub fn get_delegated(delegatee_account_vec: Vec<u8>) -> Vec<(DelegateInfo<T>, Compact<u64>)> {
+    pub fn get_delegated(
+        delegatee_account: AccountId32,
+    ) -> Vec<(DelegateInfo<T::AccountId>, Compact<u64>)> {
+        let delegatee_account_vec = delegatee_account.encode();
+
         let Ok(delegatee) = T::AccountId::decode(&mut delegatee_account_vec.as_bytes_ref()) else {
             return Vec::new(); // No delegates for invalid account
         };
 
-        let mut delegates: Vec<(DelegateInfo<T>, Compact<u64>)> = Vec::new();
+        let mut delegates: Vec<(DelegateInfo<T::AccountId>, Compact<u64>)> = Vec::new();
         for delegate in <Delegates<T> as IterableStorageMap<T::AccountId, u16>>::iter_keys() {
             let staked_to_this_delegatee =
                 Self::get_stake_for_coldkey_and_hotkey(&delegatee.clone(), &delegate.clone());

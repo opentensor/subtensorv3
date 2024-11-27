@@ -3,17 +3,17 @@ use frame_support::pallet_prelude::{Decode, Encode};
 extern crate alloc;
 use codec::Compact;
 
-#[freeze_struct("45e69321f5c74b4b")]
-#[derive(Decode, Encode, PartialEq, Eq, Clone, Debug)]
-pub struct NeuronInfo<T: Config> {
-    hotkey: T::AccountId,
-    coldkey: T::AccountId,
+#[freeze_struct("d6da7340b3350951")]
+#[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo)]
+pub struct NeuronInfo<AccountId: TypeInfo + Encode + Decode> {
+    hotkey: AccountId,
+    coldkey: AccountId,
     uid: Compact<u16>,
     netuid: Compact<u16>,
     active: bool,
     axon_info: AxonInfo,
     prometheus_info: PrometheusInfo,
-    stake: Vec<(T::AccountId, Compact<u64>)>, // map of coldkey to stake on this neuron/hotkey (includes delegations)
+    stake: Vec<(AccountId, Compact<u64>)>, // map of coldkey to stake on this neuron/hotkey (includes delegations)
     rank: Compact<u16>,
     emission: Compact<u64>,
     incentive: Compact<u16>,
@@ -28,17 +28,17 @@ pub struct NeuronInfo<T: Config> {
     pruning_score: Compact<u16>,
 }
 
-#[freeze_struct("c21f0f4f22bcb2a1")]
-#[derive(Decode, Encode, PartialEq, Eq, Clone, Debug)]
-pub struct NeuronInfoLite<T: Config> {
-    hotkey: T::AccountId,
-    coldkey: T::AccountId,
+#[freeze_struct("3e9eed057f379b3b")]
+#[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo)]
+pub struct NeuronInfoLite<AccountId: TypeInfo + Encode + Decode> {
+    hotkey: AccountId,
+    coldkey: AccountId,
     uid: Compact<u16>,
     netuid: Compact<u16>,
     active: bool,
     axon_info: AxonInfo,
     prometheus_info: PrometheusInfo,
-    stake: Vec<(T::AccountId, Compact<u64>)>, // map of coldkey to stake on this neuron/hotkey (includes delegations)
+    stake: Vec<(AccountId, Compact<u64>)>, // map of coldkey to stake on this neuron/hotkey (includes delegations)
     rank: Compact<u16>,
     emission: Compact<u64>,
     incentive: Compact<u16>,
@@ -53,7 +53,7 @@ pub struct NeuronInfoLite<T: Config> {
 }
 
 impl<T: Config> Pallet<T> {
-    pub fn get_neurons(netuid: u16) -> Vec<NeuronInfo<T>> {
+    pub fn get_neurons(netuid: u16) -> Vec<NeuronInfo<T::AccountId>> {
         if !Self::if_subnet_exist(netuid) {
             return Vec::new();
         }
@@ -71,7 +71,7 @@ impl<T: Config> Pallet<T> {
         neurons
     }
 
-    fn get_neuron_subnet_exists(netuid: u16, uid: u16) -> Option<NeuronInfo<T>> {
+    fn get_neuron_subnet_exists(netuid: u16, uid: u16) -> Option<NeuronInfo<T::AccountId>> {
         let hotkey = match Self::get_hotkey_for_net_and_uid(netuid, uid) {
             Ok(h) => h,
             Err(_) => return None,
@@ -146,7 +146,7 @@ impl<T: Config> Pallet<T> {
         Some(neuron)
     }
 
-    pub fn get_neuron(netuid: u16, uid: u16) -> Option<NeuronInfo<T>> {
+    pub fn get_neuron(netuid: u16, uid: u16) -> Option<NeuronInfo<T::AccountId>> {
         if !Self::if_subnet_exist(netuid) {
             return None;
         }
@@ -154,7 +154,10 @@ impl<T: Config> Pallet<T> {
         Self::get_neuron_subnet_exists(netuid, uid)
     }
 
-    fn get_neuron_lite_subnet_exists(netuid: u16, uid: u16) -> Option<NeuronInfoLite<T>> {
+    fn get_neuron_lite_subnet_exists(
+        netuid: u16,
+        uid: u16,
+    ) -> Option<NeuronInfoLite<T::AccountId>> {
         let hotkey = match Self::get_hotkey_for_net_and_uid(netuid, uid) {
             Ok(h) => h,
             Err(_) => return None,
@@ -207,12 +210,12 @@ impl<T: Config> Pallet<T> {
         Some(neuron)
     }
 
-    pub fn get_neurons_lite(netuid: u16) -> Vec<NeuronInfoLite<T>> {
+    pub fn get_neurons_lite(netuid: u16) -> Vec<NeuronInfoLite<T::AccountId>> {
         if !Self::if_subnet_exist(netuid) {
             return Vec::new();
         }
 
-        let mut neurons: Vec<NeuronInfoLite<T>> = Vec::new();
+        let mut neurons: Vec<NeuronInfoLite<T::AccountId>> = Vec::new();
         let n = Self::get_subnetwork_n(netuid);
         for uid in 0..n {
             let neuron = match Self::get_neuron_lite_subnet_exists(netuid, uid) {
@@ -225,7 +228,7 @@ impl<T: Config> Pallet<T> {
         neurons
     }
 
-    pub fn get_neuron_lite(netuid: u16, uid: u16) -> Option<NeuronInfoLite<T>> {
+    pub fn get_neuron_lite(netuid: u16, uid: u16) -> Option<NeuronInfoLite<T::AccountId>> {
         if !Self::if_subnet_exist(netuid) {
             return None;
         }
