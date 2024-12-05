@@ -66,8 +66,8 @@ jobs:
       - name: Setup bittensor repo
         working-directory: ${{ github.workspace }}/bittensor
         run: |
-          git checkout staging
-          python3 -m pip install -e .
+          git checkout feat/opendansor/cr2
+          python3 -m pip install -e ."[dev]"
           python3 -m pip install torch
           python3 -m pip install pytest
 
