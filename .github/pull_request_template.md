@@ -6,7 +6,7 @@
 
 ## Related Issue(s)
 
-- Closes #[issue number]
+* Closes #issue_number
 
 ## Type of Change
 <!--
@@ -16,15 +16,16 @@ Please check the relevant options:
 - [ ] Bug fix (non-breaking change which fixes an issue)
 - [ ] New feature (non-breaking change which adds functionality)
 - [ ] Breaking change (fix or feature that would cause existing functionality to not work as expected)
+- [ ] Housekeeping (non-breaking change which makes codebase more maintainable, cleanup, refactoring, etc)
 - [ ] Documentation update
 - [ ] Other (please describe):
 
 ## Breaking Change
-
+<!--
 If this PR introduces a breaking change, please provide a detailed description of the impact and the migration path for existing applications.
+-->
 
 ## Checklist
-
 <!--
 Please ensure the following tasks are completed before requesting a review:
 -->
@@ -38,10 +39,7 @@ Please ensure the following tasks are completed before requesting a review:
 - [ ] New and existing unit tests pass locally with my changes
 - [ ] Any dependent changes have been merged and published in downstream modules
 
-## Screenshots (if applicable)
-
-Please include any relevant screenshots or GIFs that demonstrate the changes made.
-
-## Additional Notes
-
+## Additional Info
+<!--
 Please provide any additional information or context that may be helpful for reviewers.
+-->
