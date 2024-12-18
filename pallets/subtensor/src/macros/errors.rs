@@ -179,5 +179,9 @@ mod errors {
         InputLengthsUnequal,
         /// A transactor exceeded the rate limit for setting weights.
         CommittingWeightsTooFast,
+        /// Too many entries in the white list
+        TooManyWhitelistEntries,
+        /// The coldkey is not whitelisted to add child.
+        ColdkeyIsNotWhitelisted,
     }
 }

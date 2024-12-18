@@ -89,6 +89,15 @@ impl<T: Config> Pallet<T> {
         // Ensure that the number of children does not exceed 5.
         ensure!(children.len() <= 5, Error::<T>::TooManyChildren);
 
+        // Check that the parent coldkey is whitelisted or childkey whitelist is empty
+        for (_, child_i) in &children {
+            let child_whitelist = ChildkeyWhitelist::<T>::get(child_i, netuid);
+            ensure!(
+                child_whitelist.is_empty() || child_whitelist.contains(&coldkey),
+                Error::<T>::ColdkeyIsNotWhitelisted
+            );
+        }
+
         // Ensure that each child is not the hotkey.
         for (_, child_i) in &children {
             ensure!(child_i != &hotkey, Error::<T>::InvalidChild);
@@ -232,6 +241,90 @@ impl<T: Config> Pallet<T> {
                 }
             },
         );
+    }
+
+    /// The implementation for the extrinsic set_childkey_whitelist: Sets the white list of coldkeys
+    /// that a childkey can have as parents.
+    ///
+    /// Sets the value of ChildkeyWhitelist and performs a few checks:
+    ///    **Signature Verification**: Ensures that the caller has signed the transaction, verifying the coldkey.
+    ///    **Root Network Check**: Ensures netuid is not the root network, as child hotkeys are not valid on the root.
+    ///    **Network Existence Check**: Ensures that the specified network exists.
+    ///    **Ownership Verification**: Ensures that the coldkey owns the hotkey.
+    ///    **Hotkey Account Existence Check**: Ensures that the hotkey account already exists.
+    ///    **Coldkey count**: Only allow to add up to 5 entries in the white list
+    ///
+    /// # Events:
+    /// * `ChildkeyWhitelistSet`:
+    ///     - If all checks pass and the white list is set.
+    ///
+    /// # Errors:
+    /// * `SubNetworkDoesNotExist`:
+    ///     - Attempting to register to a non-existent network.
+    /// * `RegistrationNotPermittedOnRootSubnet`:
+    ///     - Attempting to register a child on the root network.
+    /// * `NonAssociatedColdKey`:
+    ///     - The coldkey does not own the hotkey or the child is the same as the hotkey.
+    /// * `HotKeyAccountNotExists`:
+    ///     - The hotkey account does not exist.
+    /// * `TooManyWhitelistEntries`:
+    ///     - Too many white list entries
+    ///
+    pub fn do_set_childkey_whitelist(
+        coldkey: T::RuntimeOrigin,
+        childkey: T::AccountId,
+        netuid: u16,
+        coldkey_list: Vec<T::AccountId>,
+    ) -> DispatchResult {
+        // Check that the caller has signed the transaction. (the coldkey of the pairing)
+        let coldkey = ensure_signed(coldkey)?;
+        log::trace!(
+            "do_set_childkey_whitelist( coldkey:{:?} childkey:{:?} netuid:{:?} coldkey_list:{:?} )",
+            coldkey,
+            childkey,
+            netuid,
+            coldkey_list,
+        );
+
+        // Ensures netuid is not the root network. Child hotkeys are not valid on root.
+        ensure!(
+            netuid != Self::get_root_netuid(),
+            Error::<T>::RegistrationNotPermittedOnRootSubnet
+        );
+
+        // Check that the specified network exists.
+        ensure!(
+            Self::if_subnet_exist(netuid),
+            Error::<T>::SubNetworkDoesNotExist
+        );
+
+        // Check that the coldkey owns the childkey.
+        ensure!(
+            Self::coldkey_owns_hotkey(&coldkey, &childkey),
+            Error::<T>::NonAssociatedColdKey
+        );
+
+        // Ensure that the white list length does not exceed 5.
+        ensure!(coldkey_list.len() <= 5, Error::<T>::TooManyWhitelistEntries);
+
+        // Insert or update ChildkeyWhitelist
+        ChildkeyWhitelist::<T>::insert(childkey.clone(), netuid, coldkey_list.clone());
+
+        // --- 8. Log and return.
+        log::trace!(
+            "ChildkeyWhitelistSet( childkey:{:?}, netuid:{:?}, coldkey_list:{:?} )",
+            childkey,
+            netuid,
+            coldkey_list.clone()
+        );
+        Self::deposit_event(Event::ChildkeyWhitelistSet(
+            childkey.clone(),
+            netuid,
+            coldkey_list,
+        ));
+
+        // Ok and return.
+        Ok(())
     }
 
     /* Retrieves the list of children for a given hotkey and network.

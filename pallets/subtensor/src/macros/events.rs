@@ -185,6 +185,8 @@ mod events {
         SetChildrenScheduled(T::AccountId, u16, u64, Vec<(u64, T::AccountId)>),
         /// The children of a hotkey have been set
         SetChildren(T::AccountId, u16, Vec<(u64, T::AccountId)>),
+        /// The whitelist for childkey is set
+        ChildkeyWhitelistSet(T::AccountId, u16, Vec<T::AccountId>),
         /// The hotkey emission tempo has been set
         HotkeyEmissionTempoSet(u64),
         /// The network maximum stake has been set

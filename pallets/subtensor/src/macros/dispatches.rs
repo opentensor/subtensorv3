@@ -1484,5 +1484,19 @@ mod dispatches {
         ) -> DispatchResult {
             Self::user_add_network(origin, identity)
         }
+
+        /// User register a new subnetwork
+        #[pallet::call_index(81)]
+        #[pallet::weight((Weight::from_parts(100_000_000, 0)
+        .saturating_add(T::DbWeight::get().reads(2))
+        .saturating_add(T::DbWeight::get().writes(1)), DispatchClass::Operational, Pays::Yes))]
+        pub fn set_childkey_whitelist(
+            coldkey: OriginFor<T>,
+            childkey: T::AccountId,
+            netuid: u16,
+            coldkey_list: Vec<T::AccountId>,
+        ) -> DispatchResult {
+            Self::do_set_childkey_whitelist(coldkey, childkey, netuid, coldkey_list)
+        }
     }
 }

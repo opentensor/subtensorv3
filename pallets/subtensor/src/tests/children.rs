@@ -3747,3 +3747,77 @@ fn test_do_set_child_cooldown_period() {
         assert_eq!(children_after, vec![(proportion, child)]);
     });
 }
+
+/// Test that a coldkey can add a childkey if it is whitelisted
+#[test]
+fn test_childkey_whitelisted_coldkey_ok() {
+    new_test_ext(1).execute_with(|| {
+        let coldkey_parent = U256::from(1);
+        let coldkey_child = U256::from(5);
+        let parent = U256::from(2);
+        let child = U256::from(3);
+        let netuid: u16 = 1;
+        let root_id: u16 = 0;
+        let subnet_tempo = 10;
+        let proportion: u64 = u64::MAX;
+
+        // Add network, register hotkeys, and setup network parameters
+        add_network(root_id, subnet_tempo, 0);
+        add_network(netuid, subnet_tempo, 0);
+        register_ok_neuron(netuid, child, coldkey_child, 0);
+        register_ok_neuron(netuid, parent, coldkey_parent, 1);
+
+        // Set minimum stake for setting children
+        TotalHotkeyStake::<Test>::insert(parent, StakeThreshold::<Test>::get());
+
+        // Add parent coldkey to the child whitelist
+        ChildkeyWhitelist::<Test>::insert(child, netuid, vec![coldkey_parent]);
+
+        // Set parent-child relationship
+        assert_ok!(SubtensorModule::do_schedule_children(
+            RuntimeOrigin::signed(coldkey_parent),
+            parent,
+            netuid,
+            vec![(proportion, child)]
+        ));
+    });
+}
+
+/// Test that a coldkey can not add a childkey if it is not whitelisted
+#[test]
+fn test_childkey_not_whitelisted_coldkey_fail() {
+    new_test_ext(1).execute_with(|| {
+        let coldkey_parent = U256::from(1);
+        let coldkey_child = U256::from(5);
+        let coldkey_random = U256::from(6);
+        let parent = U256::from(2);
+        let child = U256::from(3);
+        let netuid: u16 = 1;
+        let root_id: u16 = 0;
+        let subnet_tempo = 10;
+        let proportion: u64 = u64::MAX;
+
+        // Add network, register hotkeys, and setup network parameters
+        add_network(root_id, subnet_tempo, 0);
+        add_network(netuid, subnet_tempo, 0);
+        register_ok_neuron(netuid, child, coldkey_child, 0);
+        register_ok_neuron(netuid, parent, coldkey_parent, 1);
+
+        // Set minimum stake for setting children
+        TotalHotkeyStake::<Test>::insert(parent, StakeThreshold::<Test>::get());
+
+        // Add a different parent coldkey to the child whitelist so that it is not empty
+        ChildkeyWhitelist::<Test>::insert(child, netuid, vec![coldkey_random]);
+
+        // Attempt to set child
+        assert_err!(
+            SubtensorModule::do_schedule_children(
+                RuntimeOrigin::signed(coldkey_parent),
+                parent,
+                netuid,
+                vec![(proportion, child)]
+            ),
+            Error::<Test>::ColdkeyIsNotWhitelisted
+        );
+    });
+}

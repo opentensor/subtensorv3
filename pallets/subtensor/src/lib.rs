@@ -311,6 +311,11 @@ pub mod pallet {
         vec![]
     }
     #[pallet::type_value]
+    /// Default account linkage
+    pub fn DefaultChildkeyWhitelist<T: Config>() -> Vec<T::AccountId> {
+        vec![]
+    }
+    #[pallet::type_value]
     /// Default pending childkeys
     pub fn DefaultPendingChildkeys<T: Config>() -> (Vec<(u64, T::AccountId)>, u64) {
         (vec![], 0)
@@ -875,6 +880,18 @@ pub mod pallet {
         Vec<(u64, T::AccountId)>,
         ValueQuery,
         DefaultAccountLinkage<T>,
+    >;
+    #[pallet::storage]
+    /// DMAP ( child, netuid ) --> Vec<coldkey>
+    pub type ChildkeyWhitelist<T: Config> = StorageDoubleMap<
+        _,
+        Blake2_128Concat,
+        T::AccountId,
+        Identity,
+        u16,
+        Vec<T::AccountId>,
+        ValueQuery,
+        DefaultChildkeyWhitelist<T>,
     >;
     #[pallet::storage] // --- DMAP ( cold ) --> Vec<hot> | Maps coldkey to hotkeys that stake to it
     pub type StakingHotkeys<T: Config> =
