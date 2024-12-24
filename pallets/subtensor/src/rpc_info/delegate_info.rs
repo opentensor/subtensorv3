@@ -60,7 +60,7 @@ impl<T: Config> Pallet<T> {
         let owner = Self::get_owning_coldkey_for_hotkey(&delegate.clone());
         let take: Compact<u16> = <Delegates<T>>::get(delegate.clone()).into();
 
-        let total_stake: U64F64 = Self::get_total_stake_for_hotkey(&delegate.clone()).into();
+        let total_stake: U64F64 = Self::get_total_stake_for_hotkey_on_subnets(&delegate.clone()).into();
 
         let return_per_1000: U64F64 = if total_stake > U64F64::from_num(0) {
             emissions_per_day

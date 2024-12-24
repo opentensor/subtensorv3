@@ -86,6 +86,39 @@ impl<T: Config> Pallet<T> {
         finalized_stake
     }
 
+    /// Calculates the total stake for a hotkey across all subnets.
+    ///
+    /// This function iterates through all subnets and accumulates the stake
+    /// for the given hotkey on each subnet.
+    ///
+    /// # Arguments
+    ///
+    /// * `hotkey` - The AccountId of the hotkey to calculate the total stake for.
+    ///
+    /// # Returns
+    ///
+    /// * `u64` - The total stake for the hotkey across all subnets.
+    ///
+   
+    pub fn get_total_stake_for_hotkey_on_subnets(hotkey: &T::AccountId) -> u64 {
+        // Get the list of all subnets
+        let subnet_list: Vec<u16> = Self::get_all_subnet_netuids();
+        
+        // Initialize the total stake
+        let mut total_stake: u64 = 0;
+
+        // Iterate through all subnets and accumulate the stake
+        for netuid in subnet_list {
+            // Get the stake for the hotkey on this subnet
+            let subnet_stake: u64 = Self::get_stake_for_hotkey_on_subnet(hotkey, netuid);
+            
+            // Add the subnet stake to the total stake using saturating addition
+            total_stake = total_stake.saturating_add(subnet_stake);
+        }
+
+        // Return the total stake
+        total_stake
+    }
     /// Calculates reward consensus and returns the emissions for uids/hotkeys in a given `netuid`.
     /// (Dense version used only for testing purposes.)
     #[allow(clippy::indexing_slicing)]
