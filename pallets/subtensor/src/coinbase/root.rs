@@ -333,7 +333,7 @@ impl<T: Config> Pallet<T> {
         if blocks_until_next_epoch != 0 {
             // Not the block to update emission values.
             log::debug!("blocks_until_next_epoch: {:?}", blocks_until_next_epoch);
-            return Err("");
+            // return Err("");
         }
 
         // --- 2. Retrieves the number of root validators on subnets.
@@ -341,7 +341,7 @@ impl<T: Config> Pallet<T> {
         log::debug!("n:\n{:?}\n", n);
         if n == 0 {
             // No validators.
-            return Err("No validators to validate emission values.");
+            // return Err("No validators to validate emission values.");
         }
 
         // --- 3. Obtains the number of registered subnets.
@@ -349,13 +349,25 @@ impl<T: Config> Pallet<T> {
         log::debug!("k:\n{:?}\n", k);
         if k == 0 {
             // No networks to validate.
-            return Err("No networks to validate emission values.");
+            // return Err("No networks to validate emission values.");
         }
 
-        // --- 4. Determines the total block emission across all the subnetworks. This is the
-        // value which will be distributed based on the computation below.
-        let block_emission: I64F64 = I64F64::from_num(Self::get_block_emission()?);
-        log::debug!("block_emission:\n{:?}\n", block_emission);
+        // --- 4. Determines the total block emission across all the subnetworks, node
+		// validators and node validator nominators. This is the value which will be
+		// distributed based on the computation below.
+		//
+		// The node validator emission is set aside in a seperate tracked storage for later
+		// distribution.
+        let total_block_emission: I64F64 = I64F64::from_num(Self::get_block_emission()?);
+        let subnetwork_block_emission = total_block_emission.saturating_mul(I64F64::from_num(0.2));
+        let node_validator_block_emission = total_block_emission.saturating_mul(I64F64::from_num(0.8));
+		PendingNodeValidatorEmissions::<T>::mutate(|cur| {
+			cur.saturating_accrue(node_validator_block_emission.to_num::<u64>());
+		});
+
+        log::debug!("total_block_emission:\n{:?}\n", total_block_emission);
+        log::debug!("node_validator_block_emission:\n{:?}\n", node_validator_block_emission);
+        log::debug!("subnetwork_block_emission:\n{:?}\n", subnetwork_block_emission);
 
         // --- 5. A collection of all registered hotkeys on the root network. Hotkeys
         // pairs with network UIDs and stake values.
@@ -450,7 +462,7 @@ impl<T: Config> Pallet<T> {
         // -- 11. Converts the normalized 64-bit fixed point rank values to u64 for the final emission calculation.
         let emission_as_tao: Vec<I64F64> = weighted_emission
             .iter()
-            .map(|v: &I64F64| v.saturating_mul(block_emission))
+            .map(|v: &I64F64| v.saturating_mul(subnetwork_block_emission))
             .collect();
 
         // --- 12. Converts the normalized 64-bit fixed point rank values to u64 for the final emission calculation.

@@ -6,9 +6,11 @@ pub mod finney;
 pub mod localnet;
 pub mod testnet;
 
+use babe_primitives::AuthorityId as BabeId;
 use node_subtensor_runtime::{AccountId, Block, Signature, WASM_BINARY};
 use sc_chain_spec_derive::ChainSpecExtension;
 use sc_service::ChainType;
+use sp_authority_discovery::AuthorityId as AuthorityDiscoveryId;
 use sp_consensus_aura::sr25519::AuthorityId as AuraId;
 use sp_consensus_grandpa::AuthorityId as GrandpaId;
 use sp_core::crypto::Ss58Codec;
@@ -52,9 +54,14 @@ where
     AccountPublic::from(get_from_seed::<TPublic>(seed)).into_account()
 }
 
-/// Generate an Aura authority key.
-pub fn authority_keys_from_seed(s: &str) -> (AuraId, GrandpaId) {
-    (get_from_seed::<AuraId>(s), get_from_seed::<GrandpaId>(s))
+/// Generates authority keys.
+pub fn authority_keys_from_seed(s: &str) -> (AccountId, GrandpaId, BabeId, AuthorityDiscoveryId) {
+    (
+        get_account_id_from_seed::<sr25519::Public>(&format!("{}//stash", s)),
+        get_from_seed::<GrandpaId>(s),
+        get_from_seed::<BabeId>(s),
+        get_from_seed::<AuthorityDiscoveryId>(s),
+    )
 }
 
 pub fn authority_keys_from_ss58(s_aura: &str, s_grandpa: &str) -> (AuraId, GrandpaId) {

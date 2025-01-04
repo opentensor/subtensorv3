@@ -381,7 +381,7 @@ impl<T: Config> Pallet<T> {
         );
 
         // --- 3. Ensure the supplied work passes the difficulty.
-        let difficulty: U256 = if !cfg!(feature = "fast-blocks") {
+        let difficulty: U256 = if !cfg!(feature = "fast-runtime") {
             U256::from(1_000_000) // Base faucet difficulty.
         } else {
             U256::from(100) // Lowered for fast blocks

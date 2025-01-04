@@ -16,22 +16,22 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 BASE_DIR="$SCRIPT_DIR/.."
 
 # get parameters
-# Get the value of fast_blocks from the first argument
-fast_blocks=${1:-"True"}
+# Get the value of fast_runtime from the first argument
+fast_runtime=${1:-"True"}
 
-# Check the value of fast_blocks
-if [ "$fast_blocks" == "False" ]; then
-  # Block of code to execute if fast_blocks is False
-  echo "fast_blocks is Off"
+# Check the value of fast_runtime
+if [ "$fast_runtime" == "False" ]; then
+  # Block of code to execute if fast_runtime is False
+  echo "fast_runtime is Off"
   : "${CHAIN:=local}"
   : "${BUILD_BINARY:=1}"
   : "${FEATURES:="pow-faucet"}"
 else
-  # Block of code to execute if fast_blocks is not False
-  echo "fast_blocks is On"
+  # Block of code to execute if fast_runtime is not False
+  echo "fast_runtime is On"
   : "${CHAIN:=local}"
   : "${BUILD_BINARY:=1}"
-  : "${FEATURES:="pow-faucet fast-blocks"}"
+  : "${FEATURES:="pow-faucet fast-runtime"}"
 fi
 
 SPEC_PATH="${SCRIPT_DIR}/specs/"
@@ -54,7 +54,11 @@ fi
 
 echo "*** Building chainspec..."
 "$BASE_DIR/target/release/node-subtensor" build-spec --disable-default-bootnode --raw --chain $CHAIN >$FULL_PATH
-echo "*** Chainspec built and output to file"
+echo "*** Chainspec built and output to $FULL_PATH"
+
+# generate node keys
+$BASE_DIR/target/release/node-subtensor key generate-node-key --chain="$FULL_PATH" --base-path /tmp/alice
+$BASE_DIR/target/release/node-subtensor key generate-node-key --chain="$FULL_PATH" --base-path /tmp/bob
 
 # generate node keys
 $BASE_DIR/target/release/node-subtensor key generate-node-key --chain="$FULL_PATH" --base-path /tmp/alice
@@ -66,6 +70,8 @@ else
   echo "*** Purging previous state..."
   "$BASE_DIR/target/release/node-subtensor" purge-chain -y --base-path /tmp/bob --chain="$FULL_PATH" >/dev/null 2>&1
   "$BASE_DIR/target/release/node-subtensor" purge-chain -y --base-path /tmp/alice --chain="$FULL_PATH" >/dev/null 2>&1
+  "$BASE_DIR/target/release/node-subtensor" purge-chain -y --base-path /tmp/charlie --chain="$FULL_PATH" >/dev/null 2>&1
+  "$BASE_DIR/target/release/node-subtensor" purge-chain -y --base-path /tmp/dave --chain="$FULL_PATH" >/dev/null 2>&1
   echo "*** Previous chainstate purged"
 fi
 
@@ -99,10 +105,40 @@ bob_start=(
 #  --offchain-worker=Never
 )
 
+charlie_start=(
+  "$BASE_DIR"/target/release/node-subtensor
+  --base-path /tmp/charlie
+  --chain="$FULL_PATH"
+  --charlie
+  --port 30335
+  --rpc-port 9944
+  --validator
+  --rpc-cors=all
+  --allow-private-ipv4
+  --discover-local
+  --unsafe-force-node-key-generation
+)
+
+dave_start=(
+  "$BASE_DIR"/target/release/node-subtensor
+  --base-path /tmp/dave
+  --chain="$FULL_PATH"
+  --dave
+  --port 30335
+  --rpc-port 9943
+  --validator
+  --rpc-cors=all
+  --allow-private-ipv4
+  --discover-local
+  --unsafe-force-node-key-generation
+)
+
 trap 'pkill -P $$' EXIT SIGINT SIGTERM
 
 (
-  ("${alice_start[@]}" 2>&1) &
-  ("${bob_start[@]}" 2>&1)
+  # ("${alice_start[@]}" 2>&1) &
+  ("${bob_start[@]}" 2>&1) &
+  ("${charlie_start[@]}" 2>&1) &
+  ("${dave_start[@]}" 2>&1)
   wait
 )

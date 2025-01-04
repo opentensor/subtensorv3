@@ -48,13 +48,19 @@ sc-consensus = { workspace = true }
 sc-consensus-grandpa = { workspace = true }
 sc-consensus-grandpa-rpc = { workspace = true }
 sp-consensus-grandpa = { workspace = true }
+sp-authority-discovery = { workspace = true }
 sc-chain-spec-derive = { workspace = true }
 sc-chain-spec = { workspace = true }
 sc-consensus-slots = { workspace = true }
+sc-consensus-babe = { workspace = true }
+sc-consensus-babe-rpc = { workspace = true, default-features = true }
+babe-primitives = { workspace = true }
 sc-client-api = { workspace = true }
 sp-runtime = { workspace = true }
 sp-io = { workspace = true }
 sp-timestamp = { workspace = true }
+sp-transaction-storage-proof = { workspace = true }
+sp-staking = { workspace = true }
 sp-transaction-pool = { workspace = true, features = ["default"] }
 sp-inherents = { workspace = true }
 sp-keyring = { workspace = true }
@@ -64,6 +70,8 @@ frame-metadata-hash-extension = { workspace = true }
 frame-system = { workspace = true }
 pallet-transaction-payment = { workspace = true }
 pallet-commitments = { path = "../pallets/commitments" }
+pallet-staking = { workspace = true }
+polkadot-rpc = { workspace = true }
 pallet-drand = { workspace = true }
 sp-crypto-ec-utils = { workspace = true }
 sp-keystore = { workspace = true,  default-features = false }
@@ -114,13 +122,14 @@ substrate-build-script-utils = { workspace = true }
 
 [features]
 default = ["rocksdb", "sql", "txpool"]
-fast-blocks = ["node-subtensor-runtime/fast-blocks"]
+fast-runtime = ["node-subtensor-runtime/fast-runtime"]
 sql = ["fc-db/sql", "fc-mapping-sync/sql"]
 rocksdb = [
 	"sc-service/rocksdb",
 	"fc-db/rocksdb",
 	"fc-mapping-sync/rocksdb",
 	"fc-rpc/rocksdb",
+	"sc-cli/rocksdb"
 ]
 txpool = ["fc-rpc/txpool", "fc-rpc-core/txpool"]
 
@@ -133,6 +142,8 @@ runtime-benchmarks = [
 	"sc-service/runtime-benchmarks",
 	"sp-runtime/runtime-benchmarks",
 	"pallet-commitments/runtime-benchmarks",
+	"pallet-staking/runtime-benchmarks",
+	"sp-staking/runtime-benchmarks",
 	"pallet-drand/runtime-benchmarks"
 ]
 pow-faucet = []
@@ -145,6 +156,7 @@ try-runtime = [
 	"pallet-transaction-payment/try-runtime",
 	"sp-runtime/try-runtime",
 	"pallet-commitments/try-runtime",
+	"pallet-staking/try-runtime",
 	"pallet-drand/try-runtime"
 ]
 

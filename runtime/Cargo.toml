@@ -56,6 +56,10 @@ sp-session = { workspace = true }
 sp-std = { workspace = true }
 sp-transaction-pool = { workspace = true }
 sp-version = { workspace = true }
+babe-primitives = { workspace = true }
+authority-discovery-primitives = { workspace = true }
+runtime-common = { workspace = true }
+polkadot-core-primitives = { workspace = true }
 
 # Temporary sudo
 pallet-sudo = { workspace = true }
@@ -93,6 +97,25 @@ pallet-registry = { default-features = false, path = "../pallets/registry" }
 
 # Metadata commitment pallet
 pallet-commitments = { default-features = false, path = "../pallets/commitments" }
+
+# PoS
+frame-election-provider-support = { workspace = true }
+pallet-authority-discovery = { workspace = true }
+pallet-babe = { workspace = true }
+pallet-bags-list = { workspace = true }
+pallet-staking = { workspace = true }
+pallet-staking-runtime-api = { workspace = true }
+pallet-session = { workspace = true }
+pallet-fast-unstake = { workspace = true }
+pallet-nomination-pools = { workspace = true }
+pallet-nomination-pools-runtime-api = { workspace = true }
+pallet-offences = { workspace = true }
+pallet-authorship = { workspace = true }
+pallet-election-provider-multi-phase = { workspace = true }
+pallet-staking-reward-fn = { workspace = true }
+pallet-staking-reward-curve = { workspace = true }
+sp-staking = { workspace = true }
+sp-npos-elections = { workspace = true }
 
 # Frontier
 fp-evm = { workspace = true }
@@ -132,8 +155,7 @@ substrate-wasm-builder = { workspace = true, optional = true }
 [features]
 default = ["std"]
 pow-faucet = ["pallet-subtensor/pow-faucet"]
-fast-blocks = [
-	"pallet-subtensor/fast-blocks"
+fast-runtime = [	"pallet-subtensor/fast-runtime"
 ]
 std = [
 	"frame-try-runtime?/std",
@@ -187,6 +209,26 @@ std = [
 	"log/std",
 	"sp-storage/std",
 	"sp-genesis-builder/std",
+	"pallet-babe/std",
+	"pallet-session/std",
+	"pallet-staking/std",
+	"pallet-election-provider-multi-phase/std",
+	"frame-election-provider-support/std",
+	"pallet-authority-discovery/std",
+	"pallet-authorship/std",
+	"pallet-bags-list/std",
+	"pallet-fast-unstake/std",
+	"pallet-nomination-pools-runtime-api/std",
+	"pallet-nomination-pools/std",
+	"pallet-offences/std",
+	"pallet-staking-reward-fn/std",
+	"pallet-staking-runtime-api/std",
+	"runtime-common/std",
+	"authority-discovery-primitives/std",
+	"babe-primitives/std",
+	"sp-npos-elections/std",
+	"sp-staking/std",
+	"polkadot-core-primitives/std",
 	# Frontier
 	"fp-evm/std",
 	"fp-rpc/std",
@@ -233,6 +275,16 @@ runtime-benchmarks = [
 	"pallet-preimage/runtime-benchmarks",
 	"pallet-scheduler/runtime-benchmarks",
 	"pallet-sudo/runtime-benchmarks",
+	"pallet-babe/runtime-benchmarks",
+	"pallet-staking/runtime-benchmarks",
+	"pallet-election-provider-multi-phase/runtime-benchmarks",
+	"frame-election-provider-support/runtime-benchmarks",
+	"pallet-bags-list/runtime-benchmarks",
+	"pallet-fast-unstake/runtime-benchmarks",
+	"pallet-nomination-pools/runtime-benchmarks",
+	"pallet-offences/runtime-benchmarks",
+	"runtime-common/runtime-benchmarks",
+	"sp-staking/runtime-benchmarks",
 
 	# EVM + Frontier
 	"pallet-ethereum/runtime-benchmarks",
@@ -266,6 +318,18 @@ try-runtime = [
 	"pallet-admin-utils/try-runtime",
 	"pallet-commitments/try-runtime",
 	"pallet-registry/try-runtime",
+	"pallet-babe/try-runtime",
+	"pallet-session/try-runtime",
+	"pallet-staking/try-runtime",
+	"pallet-election-provider-multi-phase/try-runtime",
+	"frame-election-provider-support/try-runtime",
+	"pallet-authority-discovery/try-runtime",
+	"pallet-authorship/try-runtime",
+	"pallet-bags-list/try-runtime",
+	"pallet-fast-unstake/try-runtime",
+	"pallet-nomination-pools/try-runtime",
+	"pallet-offences/try-runtime",
+	"runtime-common/try-runtime",
 
 	# EVM + Frontier
 	"fp-self-contained/try-runtime",

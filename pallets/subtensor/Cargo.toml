@@ -131,4 +131,4 @@ try-runtime = [
 	"pallet-drand/try-runtime"
 ]
 pow-faucet = []
-fast-blocks = []
+fast-runtime = []

@@ -936,6 +936,9 @@ pub mod pallet {
     /// ITEM( nominator_min_required_stake )
     pub type NominatorMinRequiredStake<T> =
         StorageValue<_, u64, ValueQuery, DefaultNominatorMinRequiredStake<T>>;
+    #[pallet::storage]
+    /// ITEM ( pending_node_validator_emission )
+    pub type PendingNodeValidatorEmissions<T> = StorageValue<_, u64, ValueQuery>;
 
     /// ============================
     /// ==== Subnet Parameters =====
