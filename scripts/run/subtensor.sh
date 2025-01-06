@@ -44,7 +44,7 @@ function run_command() {
     --chain ./chainspecs/raw_spec_finney.json \
     --rpc-external --rpc-cors all \
     --no-mdns \
-    --rpc-max-connections 10000 --in-peers 500 --out-peers 500 \
+    --rpc-max-connections 10000 \
     $SPECIFIC_OPTIONS
 }
 
