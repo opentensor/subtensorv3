@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8" />
+		<title>Baedeker devtools</title>
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<script src="https://cdn.jsdelivr.net/npm/ejs@3.1.8/ejs.min.js"></script>
+	</head>
+	<body>
+		<template id="main">
+			<h4>App links:</h4>
+			<ul>
+				<% for (let chain of chains) { %>
+					<li>
+						<a href="/apps/?rpc=<%= encodeURIComponent(`${location.origin.replace(/^http/, 'ws')}/${chain.path}/`)%>#/explorer"><%= chain.path%></a>
+					</li>
+				<% } %>
+			</ul>
+		</template>
+		<div id="target"></div>
+		<script>
+			const templateHTML = document.getElementById("main")
+				.innerHTML
+				.replace(/\&lt;/g, "<")
+				.replace(/\&gt;/g, ">");
+
+			document.getElementById("target").innerHTML = ejs.render(templateHTML, DATA_JSON);
+		</script>
+	</body>
+</html>
