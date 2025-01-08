@@ -77,6 +77,17 @@ fn localnet_genesis(
             get_account_id_from_seed::<sr25519::Public>("Ferdie"),
             2000000000000u128,
         ),
+        // ETH
+        (
+            // Alith - 0xf24FF3a9CF04c71Dbc94D0b566f7A27B94566cac
+            AccountId::from_str("5Fghzk1AJt88PeFEzuRfXzbPchiBbsVGTTXcdx599VdZzkTA").unwrap(),
+            2000000000000u128,
+        ),
+        (
+            // Baltathar - 0x3Cd0A705a2DC65e5b1E1205896BaA2be8A07c6e0
+            AccountId::from_str("5GeqNhKWj1KG78VHzbmo3ZjZgUTrCuWeamdgiA114XHGdaEr").unwrap(),
+            2000000000000u128,
+        ),
     ];
 
     // Check if the environment variable is set
