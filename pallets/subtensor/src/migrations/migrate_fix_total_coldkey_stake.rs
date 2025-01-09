@@ -44,8 +44,8 @@ pub fn do_migrate_fix_total_coldkey_stake<T: Config>() -> Weight {
         }
         // Update the `TotalColdkeyStake` storage with the calculated stake sum.
         // Cant fail on insert.
-        TotalColdkeyStake::<T>::insert(coldkey.clone(), coldkey_stake_sum);
-        weight = weight.saturating_add(T::DbWeight::get().writes(1));
+        // TotalColdkeyStake::<T>::insert(coldkey.clone(), coldkey_stake_sum);
+        // weight = weight.saturating_add(T::DbWeight::get().writes(1));
     }
     weight
 }

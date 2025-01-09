@@ -111,8 +111,6 @@ benchmarks! {
     let modality: u16 = 0;
     let seed : u32 = 1;
 
-    Subtensor::<T>::set_target_stakes_per_interval(100);
-
     Subtensor::<T>::init_new_network(netuid, tempo);
 
     Subtensor::<T>::set_burn(netuid, 1);
@@ -129,7 +127,7 @@ benchmarks! {
     Subtensor::<T>::add_balance_to_coldkey_account(&coldkey.clone(), amount_to_be_staked);
 
     assert_ok!(Subtensor::<T>::do_burned_registration(RawOrigin::Signed(coldkey.clone()).into(), netuid, hotkey.clone()));
-  }: add_stake(RawOrigin::Signed( coldkey.clone() ), hotkey, amount)
+  }: add_stake(RawOrigin::Signed( coldkey.clone() ), hotkey, netuid, amount)
 
   benchmark_remove_stake{
     let caller: T::AccountId = whitelisted_caller::<AccountIdOf<T>>();
@@ -139,8 +137,6 @@ benchmarks! {
     let tempo: u16 = 1;
     let modality: u16 = 0;
     let seed : u32 = 1;
-
-    Subtensor::<T>::set_target_stakes_per_interval(100);
 
     // Set our total stake to 1000 TAO
     Subtensor::<T>::increase_total_stake(1_000_000_000_000);
@@ -159,16 +155,15 @@ benchmarks! {
     Subtensor::<T>::add_balance_to_coldkey_account(&coldkey.clone(), wallet_bal);
 
     assert_ok!(Subtensor::<T>::do_burned_registration(RawOrigin::Signed(coldkey.clone()).into(), netuid, hotkey.clone()));
-    assert_ok!(Subtensor::<T>::do_become_delegate(RawOrigin::Signed(coldkey.clone()).into(), hotkey.clone(), Subtensor::<T>::get_default_delegate_take()));
 
       // Stake 10% of our current total staked TAO
       let u64_staked_amt = 100_000_000_000;
     Subtensor::<T>::add_balance_to_coldkey_account(&coldkey.clone(), u64_staked_amt);
 
-    assert_ok!( Subtensor::<T>::add_stake(RawOrigin::Signed( coldkey.clone() ).into() , hotkey.clone(), u64_staked_amt));
+    assert_ok!( Subtensor::<T>::add_stake(RawOrigin::Signed( coldkey.clone() ).into() , hotkey.clone(), netuid, u64_staked_amt));
 
     let amount_unstaked: u64 = u64_staked_amt - 1;
-  }: remove_stake(RawOrigin::Signed( coldkey.clone() ), hotkey.clone(), amount_unstaked)
+  }: remove_stake(RawOrigin::Signed( coldkey.clone() ), hotkey.clone(), netuid, amount_unstaked)
 
   benchmark_serve_axon{
     let caller: T::AccountId = whitelisted_caller::<AccountIdOf<T>>();
@@ -293,25 +288,27 @@ benchmarks! {
     let seed : u32 = 1;
 
     let coldkey: T::AccountId = account("Test", 0, seed);
+    let hotkey: T::AccountId = account("TestHotkey", 0, seed);
 
     Subtensor::<T>::set_network_rate_limit(1);
 
     let amount: u64 = 1;
     let amount_to_be_staked = 100_000_000_000_000u64;
     Subtensor::<T>::add_balance_to_coldkey_account(&coldkey.clone(), amount_to_be_staked);
-  }: register_network(RawOrigin::Signed(coldkey))
+  }: register_network(RawOrigin::Signed(coldkey), hotkey.clone())
 
   benchmark_dissolve_network {
     let seed : u32 = 1;
 
     let coldkey: T::AccountId = account("Test", 0, seed);
+    let hotkey: T::AccountId = account("TestHotkey", 0, seed);
 
     Subtensor::<T>::set_network_rate_limit(0);
 
     let amount: u64 = 1;
     let amount_to_be_staked = 100_000_000_000_000u64;
     Subtensor::<T>::add_balance_to_coldkey_account(&coldkey.clone(), amount_to_be_staked);
-    assert_ok!(Subtensor::<T>::register_network(RawOrigin::Signed(coldkey.clone()).into()));
+    assert_ok!(Subtensor::<T>::register_network(RawOrigin::Signed(coldkey.clone()).into(), hotkey.clone()));
   }: dissolve_network(RawOrigin::Root, coldkey.clone(), 1)
 
 

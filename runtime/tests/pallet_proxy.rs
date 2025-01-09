@@ -102,9 +102,11 @@ fn call_senate() -> RuntimeCall {
 
 // staking call
 fn call_add_stake() -> RuntimeCall {
+    let netuid = 1;
     let amount_staked = 100;
     RuntimeCall::SubtensorModule(pallet_subtensor::Call::add_stake {
         hotkey: AccountId::from(DELEGATE),
+        netuid,
         amount_staked,
     })
 }

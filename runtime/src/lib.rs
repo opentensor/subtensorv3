@@ -220,7 +220,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
     //   `spec_version`, and `authoring_version` are the same between Wasm and native.
     // This value is set to 100 to notify Polkadot-JS App (https://polkadot.js.org/apps) to use
     //   the compatible custom types.
-    spec_version: 218,
+    spec_version: 221,
     impl_version: 1,
     apis: RUNTIME_API_VERSIONS,
     transaction_version: 1,
@@ -397,7 +397,7 @@ impl Contains<RuntimeCall> for SafeModeWhitelistedCalls {
                 | RuntimeCall::Timestamp(_)
                 | RuntimeCall::SubtensorModule(
                     pallet_subtensor::Call::set_weights { .. }
-                        | pallet_subtensor::Call::set_root_weights { .. }
+                        | pallet_subtensor::Call::set_tao_weights { .. }
                         | pallet_subtensor::Call::serve_axon { .. }
                 )
                 | RuntimeCall::Commitments(pallet_commitments::Call::set_commitment { .. })
@@ -753,7 +753,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
                     | RuntimeCall::SubtensorModule(pallet_subtensor::Call::root_register { .. })
                     | RuntimeCall::SubtensorModule(pallet_subtensor::Call::burned_register { .. })
                     | RuntimeCall::Triumvirate(..)
-                    | RuntimeCall::SubtensorModule(pallet_subtensor::Call::set_root_weights { .. })
+                    | RuntimeCall::SubtensorModule(pallet_subtensor::Call::set_tao_weights { .. })
                     | RuntimeCall::Sudo(..)
             ),
             ProxyType::Triumvirate => matches!(
@@ -779,7 +779,7 @@ impl InstanceFilter<RuntimeCall> for ProxyType {
             ),
             ProxyType::RootWeights => matches!(
                 c,
-                RuntimeCall::SubtensorModule(pallet_subtensor::Call::set_root_weights { .. })
+                RuntimeCall::SubtensorModule(pallet_subtensor::Call::set_tao_weights { .. })
             ),
             ProxyType::ChildKeys => matches!(
                 c,
@@ -1035,16 +1035,14 @@ parameter_types! {
     pub const SubtensorInitialSubnetLimit: u16 = 12;
     pub const SubtensorInitialNetworkLockReductionInterval: u64 = 14 * 7200;
     pub const SubtensorInitialNetworkRateLimit: u64 = 7200;
-    pub const SubtensorInitialTargetStakesPerInterval: u16 = 1;
     pub const SubtensorInitialKeySwapCost: u64 = 100_000_000; // 0.1 TAO
     pub const InitialAlphaHigh: u16 = 58982; // Represents 0.9 as per the production default
     pub const InitialAlphaLow: u16 = 45875; // Represents 0.7 as per the production default
     pub const InitialLiquidAlphaOn: bool = false; // Default value for LiquidAlphaOn
-    pub const SubtensorInitialHotkeyEmissionTempo: u64 = 7200; // Drain every day.
     pub const SubtensorInitialNetworkMaxStake: u64 = u64::MAX; // Maximum possible value for u64, this make the make stake infinity
-    pub const  InitialColdkeySwapScheduleDuration: BlockNumber = 5 * 24 * 60 * 60 / 12; // 5 days
-    pub const  InitialDissolveNetworkScheduleDuration: BlockNumber = 5 * 24 * 60 * 60 / 12; // 5 days
-
+    pub const InitialColdkeySwapScheduleDuration: BlockNumber = 5 * 24 * 60 * 60 / 12; // 5 days
+    pub const InitialDissolveNetworkScheduleDuration: BlockNumber = 5 * 24 * 60 * 60 / 12; // 5 days
+    pub const SubtensorInitialTaoWeight: u64 = 332_041_393_326_771_929; // 18% global weigh.
 }
 
 impl pallet_subtensor::Config for Runtime {
@@ -1100,13 +1098,12 @@ impl pallet_subtensor::Config for Runtime {
     type InitialSubnetOwnerCut = SubtensorInitialSubnetOwnerCut;
     type InitialSubnetLimit = SubtensorInitialSubnetLimit;
     type InitialNetworkRateLimit = SubtensorInitialNetworkRateLimit;
-    type InitialTargetStakesPerInterval = SubtensorInitialTargetStakesPerInterval;
     type KeySwapCost = SubtensorInitialKeySwapCost;
     type AlphaHigh = InitialAlphaHigh;
     type AlphaLow = InitialAlphaLow;
     type LiquidAlphaOn = InitialLiquidAlphaOn;
-    type InitialHotkeyEmissionTempo = SubtensorInitialHotkeyEmissionTempo;
     type InitialNetworkMaxStake = SubtensorInitialNetworkMaxStake;
+    type InitialTaoWeight = SubtensorInitialTaoWeight;
     type Preimages = Preimage;
     type InitialColdkeySwapScheduleDuration = InitialColdkeySwapScheduleDuration;
     type InitialDissolveNetworkScheduleDuration = InitialDissolveNetworkScheduleDuration;
@@ -2103,6 +2100,31 @@ impl_runtime_apis! {
             } else {
                 vec![]
             }
+        }
+
+        fn get_dynamic_info(netuid: u16) -> Vec<u8> {
+            let _result = SubtensorModule::get_dynamic_info(netuid);
+            if _result.is_some() {
+                let result = _result.expect("Could not get DynamicInfo.");
+                result.encode()
+            } else {
+                vec![]
+            }
+        }
+
+        fn get_subnet_state(netuid: u16) -> Vec<u8> {
+            let _result = SubtensorModule::get_subnet_state(netuid);
+            if _result.is_some() {
+                let result = _result.expect("Could not get SubnetState.");
+                result.encode()
+            } else {
+                vec![]
+            }
+        }
+
+        fn get_all_dynamic_info() -> Vec<u8> {
+            let result = SubtensorModule::get_all_dynamic_info();
+            result.encode()
         }
     }
 

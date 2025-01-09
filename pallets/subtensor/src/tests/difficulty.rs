@@ -4,6 +4,7 @@ use sp_core::U256;
 
 use super::mock::*;
 
+// SKIP_WASM_BUILD=1 RUST_LOG=debug cargo test --package pallet-subtensor --lib -- tests::difficulty::test_registration_difficulty_adjustment --exact --show-output --nocapture
 #[test]
 fn test_registration_difficulty_adjustment() {
     new_test_ext(1).execute_with(|| {

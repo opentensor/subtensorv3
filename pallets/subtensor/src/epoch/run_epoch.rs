@@ -5,87 +5,6 @@ use sp_std::vec;
 use substrate_fixed::types::{I32F32, I64F64, I96F32};
 
 impl<T: Config> Pallet<T> {
-    /// Calculates the total stake held by a hotkey on the network, considering child/parent relationships.
-    ///
-    /// This function performs the following steps:
-    /// 1. Checks for self-loops in the delegation graph.
-    /// 2. Retrieves the initial stake of the hotkey.
-    /// 3. Calculates the stake allocated to children.
-    /// 4. Calculates the stake received from parents.
-    /// 5. Computes the final stake by adjusting the initial stake with child and parent contributions.
-    ///
-    /// # Arguments
-    /// * `hotkey` - AccountId of the hotkey whose total network stake is to be calculated.
-    /// * `netuid` - Network unique identifier specifying the network context.
-    ///
-    /// # Returns
-    /// * `u64` - The total stake for the hotkey on the network after considering the stakes
-    ///           from children and parents.
-    ///
-    /// # Note
-    /// This function now includes a check for self-loops in the delegation graph using the
-    /// `dfs_check_self_loops` method. However, it currently only logs warnings for detected loops
-    /// and does not alter the stake calculation based on these findings.
-    ///
-    /// # Panics
-    /// This function does not explicitly panic, but underlying arithmetic operations
-    /// use saturating arithmetic to prevent overflows.
-    ///
-    pub fn get_stake_for_hotkey_on_subnet(hotkey: &T::AccountId, netuid: u16) -> u64 {
-        // Retrieve the initial total stake for the hotkey without any child/parent adjustments.
-        let initial_stake: u64 = Self::get_total_stake_for_hotkey(hotkey);
-        log::debug!("Initial stake: {:?}", initial_stake);
-        let mut stake_to_children: u64 = 0;
-        let mut stake_from_parents: u64 = 0;
-
-        // Retrieve lists of parents and children from storage, based on the hotkey and network ID.
-        let parents: Vec<(u64, T::AccountId)> = Self::get_parents(hotkey, netuid);
-        let children: Vec<(u64, T::AccountId)> = Self::get_children(hotkey, netuid);
-
-        // Iterate over children to calculate the total stake allocated to them.
-        for (proportion, _) in children {
-            // Calculate the stake proportion allocated to the child based on the initial stake.
-            let normalized_proportion: I96F32 =
-                I96F32::from_num(proportion).saturating_div(I96F32::from_num(u64::MAX));
-            let stake_proportion_to_child: I96F32 =
-                I96F32::from_num(initial_stake).saturating_mul(normalized_proportion);
-
-            // Accumulate the total stake given to children.
-            stake_to_children =
-                stake_to_children.saturating_add(stake_proportion_to_child.to_num::<u64>());
-        }
-
-        // Iterate over parents to calculate the total stake received from them.
-        for (proportion, parent) in parents {
-            // Retrieve the parent's total stake.
-            let parent_stake: u64 = Self::get_total_stake_for_hotkey(&parent);
-            // Calculate the stake proportion received from the parent.
-            let normalized_proportion: I96F32 =
-                I96F32::from_num(proportion).saturating_div(I96F32::from_num(u64::MAX));
-            let stake_proportion_from_parent: I96F32 =
-                I96F32::from_num(parent_stake).saturating_mul(normalized_proportion);
-
-            // Accumulate the total stake received from parents.
-            stake_from_parents =
-                stake_from_parents.saturating_add(stake_proportion_from_parent.to_num::<u64>());
-        }
-
-        // Calculate the final stake for the hotkey by adjusting the initial stake with the stakes
-        // to/from children and parents.
-        let mut finalized_stake: u64 = initial_stake
-            .saturating_sub(stake_to_children)
-            .saturating_add(stake_from_parents);
-
-        // get the max stake for the network
-        let max_stake = Self::get_network_max_stake(netuid);
-
-        // Return the finalized stake value for the hotkey, but capped at the max stake.
-        finalized_stake = finalized_stake.min(max_stake);
-
-        // Return the finalized stake value for the hotkey.
-        finalized_stake
-    }
-
     /// Calculates reward consensus and returns the emissions for uids/hotkeys in a given `netuid`.
     /// (Dense version used only for testing purposes.)
     #[allow(clippy::indexing_slicing)]
@@ -146,13 +65,10 @@ impl<T: Config> Pallet<T> {
         log::trace!("hotkeys: {:?}", &hotkeys);
 
         // Access network stake as normalized vector.
-        let mut stake_64: Vec<I64F64> = vec![I64F64::from_num(0.0); n as usize];
-        for (uid_i, hotkey) in &hotkeys {
-            stake_64[*uid_i as usize] =
-                I64F64::from_num(Self::get_stake_for_hotkey_on_subnet(hotkey, netuid));
-        }
-        inplace_normalize_64(&mut stake_64);
-        let stake: Vec<I32F32> = vec_fixed64_to_fixed32(stake_64);
+        let (mut total_stake, _alpha_stake, _tao_stake): (Vec<I64F64>, Vec<I64F64>, Vec<I64F64>) =
+            Self::get_stake_weights_for_network(netuid);
+        inplace_normalize_64(&mut total_stake);
+        let stake: Vec<I32F32> = vec_fixed64_to_fixed32(total_stake);
         log::trace!("S:\n{:?}\n", &stake);
 
         // =======================
@@ -480,15 +396,10 @@ impl<T: Config> Pallet<T> {
         log::trace!("hotkeys: {:?}", &hotkeys);
 
         // Access network stake as normalized vector.
-        let mut stake_64: Vec<I64F64> = vec![I64F64::from_num(0.0); n as usize];
-        for (uid_i, hotkey) in &hotkeys {
-            stake_64[*uid_i as usize] =
-                I64F64::from_num(Self::get_stake_for_hotkey_on_subnet(hotkey, netuid));
-        }
-        log::trace!("Stake : {:?}", &stake_64);
-        inplace_normalize_64(&mut stake_64);
-        let stake: Vec<I32F32> = vec_fixed64_to_fixed32(stake_64);
-        // range: I32F32(0, 1)
+        let (mut total_stake, _alpha_stake, _tao_stake): (Vec<I64F64>, Vec<I64F64>, Vec<I64F64>) =
+            Self::get_stake_weights_for_network(netuid);
+        inplace_normalize_64(&mut total_stake);
+        let stake: Vec<I32F32> = vec_fixed64_to_fixed32(total_stake);
         log::trace!("Normalised Stake: {:?}", &stake);
 
         // =======================

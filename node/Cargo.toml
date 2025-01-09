@@ -103,6 +103,7 @@ fp-rpc = { workspace = true }
 fc-mapping-sync = { workspace = true }
 fp-consensus = { workspace = true }
 thiserror = { workspace = true }
+num-traits = { version = "0.2", features = ["std"] }
 
 # Local Dependencies
 node-subtensor-runtime = { path = "../runtime" }

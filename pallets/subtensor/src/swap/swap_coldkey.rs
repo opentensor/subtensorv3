@@ -1,6 +1,7 @@
 use super::*;
 use frame_support::weights::Weight;
 use sp_core::Get;
+use substrate_fixed::types::U64F64;
 
 impl<T: Config> Pallet<T> {
     /// Swaps the coldkey associated with a set of hotkeys from an old coldkey to a new coldkey.
@@ -136,13 +137,13 @@ impl<T: Config> Pallet<T> {
     ) -> DispatchResult {
         // 1. Swap TotalHotkeyColdkeyStakesThisInterval
         // TotalHotkeyColdkeyStakesThisInterval: MAP ( hotkey, coldkey ) --> ( stake, block ) | Stake of the hotkey for the coldkey.
-        for hotkey in OwnedHotkeys::<T>::get(old_coldkey).iter() {
-            let (stake, block) =
-                TotalHotkeyColdkeyStakesThisInterval::<T>::get(&hotkey, old_coldkey);
-            TotalHotkeyColdkeyStakesThisInterval::<T>::remove(&hotkey, old_coldkey);
-            TotalHotkeyColdkeyStakesThisInterval::<T>::insert(&hotkey, new_coldkey, (stake, block));
-            weight.saturating_accrue(T::DbWeight::get().reads_writes(1, 2));
-        }
+        // for hotkey in OwnedHotkeys::<T>::get(old_coldkey).iter() {
+        //     let (stake, block) =
+        //         TotalHotkeyColdkeyStakesThisInterval::<T>::get(&hotkey, old_coldkey);
+        //     TotalHotkeyColdkeyStakesThisInterval::<T>::remove(&hotkey, old_coldkey);
+        //     TotalHotkeyColdkeyStakesThisInterval::<T>::insert(&hotkey, new_coldkey, (stake, block));
+        //     weight.saturating_accrue(T::DbWeight::get().reads_writes(1, 2));
+        // }  (DEPRECATED)
 
         // 2. Swap subnet owner.
         // SubnetOwner: MAP ( netuid ) --> (coldkey) | Owner of the subnet.
@@ -165,38 +166,38 @@ impl<T: Config> Pallet<T> {
             Stake::<T>::insert(&hotkey, new_coldkey, new_stake.saturating_add(old_stake));
             // Remove the value from the old account.
             Stake::<T>::remove(&hotkey, old_coldkey);
+            // 3.1 Swap Alpha
+            for netuid in Self::get_all_subnet_netuids() {
+                // Get the stake on the old (hot,coldkey) account.
+                let old_alpha: U64F64 = Alpha::<T>::get((&hotkey, old_coldkey, netuid));
+                // Get the stake on the new (hot,coldkey) account.
+                let new_alpha: U64F64 = Alpha::<T>::get((&hotkey, new_coldkey, netuid));
+                // Add the stake to new account.
+                Alpha::<T>::insert(
+                    (&hotkey, new_coldkey, netuid),
+                    new_alpha.saturating_add(old_alpha),
+                );
+                // Remove the value from the old account.
+                Alpha::<T>::remove((&hotkey, old_coldkey, netuid));
+            }
             // Add the weight for the read and write.
             weight.saturating_accrue(T::DbWeight::get().reads_writes(2, 2));
         }
 
-        // 4. Swap StakeDeltaSinceLastEmissionDrain
-        for hotkey in StakingHotkeys::<T>::get(old_coldkey) {
-            let old_stake_delta = StakeDeltaSinceLastEmissionDrain::<T>::get(&hotkey, old_coldkey);
-            let new_stake_delta = StakeDeltaSinceLastEmissionDrain::<T>::get(&hotkey, new_coldkey);
-            StakeDeltaSinceLastEmissionDrain::<T>::insert(
-                &hotkey,
-                new_coldkey,
-                new_stake_delta.saturating_add(old_stake_delta),
-            );
-            StakeDeltaSinceLastEmissionDrain::<T>::remove(&hotkey, old_coldkey);
-            weight.saturating_accrue(T::DbWeight::get().reads_writes(2, 2));
-        }
+        // 4. Swap TotalColdkeyAlpha (DEPRECATED)
+        // for netuid in Self::get_all_subnet_netuids() {
+        //     let old_alpha_stake: u64 = TotalColdkeyAlpha::<T>::get(old_coldkey, netuid);
+        //     let new_alpha_stake: u64 = TotalColdkeyAlpha::<T>::get(new_coldkey, netuid);
+        //     TotalColdkeyAlpha::<T>::insert(
+        //         new_coldkey,
+        //         netuid,
+        //         new_alpha_stake.saturating_add(old_alpha_stake),
+        //     );
+        //     TotalColdkeyAlpha::<T>::remove(old_coldkey, netuid);
+        // }
+        // weight.saturating_accrue(T::DbWeight::get().reads_writes(2, 2));
 
-        // 5. Swap total coldkey stake.
-        // TotalColdkeyStake: MAP ( coldkey ) --> u64 | Total stake of the coldkey.
-        let old_coldkey_stake: u64 = TotalColdkeyStake::<T>::get(old_coldkey);
-        // Get the stake of the new coldkey.
-        let new_coldkey_stake: u64 = TotalColdkeyStake::<T>::get(new_coldkey);
-        // Remove the value from the old account.
-        TotalColdkeyStake::<T>::insert(old_coldkey, 0);
-        // Add the stake to new account.
-        TotalColdkeyStake::<T>::insert(
-            new_coldkey,
-            new_coldkey_stake.saturating_add(old_coldkey_stake),
-        );
-        weight.saturating_accrue(T::DbWeight::get().reads_writes(2, 2));
-
-        // 6. Swap StakingHotkeys.
+        // 5. Swap StakingHotkeys.
         // StakingHotkeys: MAP ( coldkey ) --> Vec<hotkeys> | Hotkeys staking for the coldkey.
         let old_staking_hotkeys: Vec<T::AccountId> = StakingHotkeys::<T>::get(old_coldkey);
         let mut new_staking_hotkeys: Vec<T::AccountId> = StakingHotkeys::<T>::get(new_coldkey);
@@ -210,7 +211,7 @@ impl<T: Config> Pallet<T> {
         StakingHotkeys::<T>::insert(new_coldkey, new_staking_hotkeys);
         weight.saturating_accrue(T::DbWeight::get().reads_writes(2, 2));
 
-        // 7. Swap hotkey owners.
+        // 6. Swap hotkey owners.
         // Owner: MAP ( hotkey ) --> coldkey | Owner of the hotkey.
         // OwnedHotkeys: MAP ( coldkey ) --> Vec<hotkeys> | Hotkeys owned by the coldkey.
         let old_owned_hotkeys: Vec<T::AccountId> = OwnedHotkeys::<T>::get(old_coldkey);
@@ -229,7 +230,7 @@ impl<T: Config> Pallet<T> {
         OwnedHotkeys::<T>::insert(new_coldkey, new_owned_hotkeys);
         weight.saturating_accrue(T::DbWeight::get().reads_writes(2, 2));
 
-        // 8. Transfer remaining balance.
+        // 7. Transfer remaining balance.
         // Balance: MAP ( coldkey ) --> u64 | Balance of the coldkey.
         // Transfer any remaining balance from old_coldkey to new_coldkey
         let remaining_balance = Self::get_coldkey_balance(old_coldkey);

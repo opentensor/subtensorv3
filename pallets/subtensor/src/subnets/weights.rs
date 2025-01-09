@@ -740,7 +740,6 @@ impl<T: Config> Pallet<T> {
                 Error::<T>::SettingWeightsTooFast
             );
         }
-
         // --- 10. Check that the neuron uid is an allowed validator permitted to set non-self weights.
         ensure!(
             Self::check_validator_permit(netuid, neuron_uid, &uids, &values),

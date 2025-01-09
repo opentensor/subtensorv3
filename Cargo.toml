@@ -29,6 +29,7 @@ members = [
     "pallets/admin-utils",
     "pallets/collective",
     "pallets/registry",
+    "primitives/*",
     "runtime",
     "support/tools",
     "support/macros",
@@ -82,6 +83,7 @@ quote = "1"
 proc-macro2 = { version = "1", features = ["span-locations"] }
 thiserror = "1.0"
 walkdir = "2"
+approx = "0.5"
 
 subtensor-macros = { path = "support/macros" }
 

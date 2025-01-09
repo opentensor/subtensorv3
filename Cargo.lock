@@ -5549,6 +5549,7 @@ dependencies = [
  "jsonrpsee",
  "memmap2 0.9.5",
  "node-subtensor-runtime",
+ "num-traits",
  "pallet-commitments",
  "pallet-drand",
  "pallet-transaction-payment",
@@ -6425,6 +6426,7 @@ dependencies = [
 name = "pallet-subtensor"
 version = "4.0.0-dev"
 dependencies = [
+ "approx",
  "ark-bls12-381",
  "ark-serialize",
  "frame-benchmarking",
@@ -6454,6 +6456,7 @@ dependencies = [
  "serde_json",
  "serde_with",
  "sha2 0.10.8",
+ "share-pool",
  "sp-core",
  "sp-io",
  "sp-runtime",
@@ -9514,6 +9517,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f40ca3c46823713e0d4209592e8d6e826aa57e928f09752619fc696c499637f6"
 dependencies = [
  "lazy_static",
+]
+
+[[package]]
+name = "share-pool"
+version = "0.1.0"
+dependencies = [
+ "sp-std 14.0.0 (git+https://github.com/paritytech/polkadot-sdk.git?tag=polkadot-stable2409)",
+ "substrate-fixed",
 ]
 
 [[package]]

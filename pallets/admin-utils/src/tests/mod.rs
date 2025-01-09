@@ -6,7 +6,8 @@ use frame_support::{
 };
 use frame_system::Config;
 use pallet_subtensor::Error as SubtensorError;
-use pallet_subtensor::{migrations, Event};
+// use pallet_subtensor::{migrations, Event};
+use pallet_subtensor::Event;
 use sp_consensus_grandpa::AuthorityId as GrandpaId;
 use sp_core::{ed25519, Pair, U256};
 
@@ -943,26 +944,16 @@ mod sudo_set_nominator_min_required_stake {
             let cold1 = U256::from(3);
             let cold2 = U256::from(4);
 
-            SubtensorModule::set_target_stakes_per_interval(10);
+            // SubtensorModule::set_target_stakes_per_interval(10);
             // Register network.
             add_network(netuid, 0);
 
             // Register hot1.
             register_ok_neuron(netuid, hot1, cold1, 0);
-            assert_ok!(SubtensorModule::do_become_delegate(
-                <<Test as Config>::RuntimeOrigin>::signed(cold1),
-                hot1,
-                u16::MAX / 10
-            ));
             assert_eq!(SubtensorModule::get_owning_coldkey_for_hotkey(&hot1), cold1);
 
             // Register hot2.
             register_ok_neuron(netuid, hot2, cold2, 0);
-            assert_ok!(SubtensorModule::do_become_delegate(
-                <<Test as Config>::RuntimeOrigin>::signed(cold2),
-                hot2,
-                u16::MAX / 10
-            ));
             assert_eq!(SubtensorModule::get_owning_coldkey_for_hotkey(&hot2), cold2);
 
             // Add stake cold1 --> hot1 (non delegation.)
@@ -970,10 +961,11 @@ mod sudo_set_nominator_min_required_stake {
             assert_ok!(SubtensorModule::add_stake(
                 <<Test as Config>::RuntimeOrigin>::signed(cold1),
                 hot1,
+                netuid,
                 1
             ));
             assert_eq!(
-                SubtensorModule::get_stake_for_coldkey_and_hotkey(&cold1, &hot1),
+                SubtensorModule::get_stake_for_hotkey_and_coldkey_on_subnet(&hot1, &cold1, netuid),
                 1
             );
             assert_eq!(Balances::free_balance(cold1), 4);
@@ -983,36 +975,39 @@ mod sudo_set_nominator_min_required_stake {
             assert_ok!(SubtensorModule::add_stake(
                 <<Test as Config>::RuntimeOrigin>::signed(cold2),
                 hot1,
+                netuid,
                 1
             ));
             assert_eq!(
-                SubtensorModule::get_stake_for_coldkey_and_hotkey(&cold2, &hot1),
+                SubtensorModule::get_stake_for_hotkey_and_coldkey_on_subnet(&hot1, &cold2, netuid),
                 1
             );
             assert_eq!(Balances::free_balance(cold2), 4);
 
-            // Add stake cold1 --> hot2 (non delegation.)
+            // Add stake cold1 --> hot2
             SubtensorModule::add_balance_to_coldkey_account(&cold1, 5);
             assert_ok!(SubtensorModule::add_stake(
                 <<Test as Config>::RuntimeOrigin>::signed(cold1),
                 hot2,
+                netuid,
                 1
             ));
             assert_eq!(
-                SubtensorModule::get_stake_for_coldkey_and_hotkey(&cold1, &hot2),
+                SubtensorModule::get_stake_for_hotkey_and_coldkey_on_subnet(&hot2, &cold1, netuid),
                 1
             );
             assert_eq!(Balances::free_balance(cold1), 8);
 
-            // Add stake cold2 --> hot2 (is delegation.)
+            // Add stake cold2 --> hot2
             SubtensorModule::add_balance_to_coldkey_account(&cold2, 5);
             assert_ok!(SubtensorModule::add_stake(
                 <<Test as Config>::RuntimeOrigin>::signed(cold2),
                 hot2,
+                netuid,
                 1
             ));
             assert_eq!(
-                SubtensorModule::get_stake_for_coldkey_and_hotkey(&cold2, &hot2),
+                SubtensorModule::get_stake_for_hotkey_and_coldkey_on_subnet(&hot2, &cold2, netuid),
                 1
             );
             assert_eq!(Balances::free_balance(cold2), 8);
@@ -1023,19 +1018,19 @@ mod sudo_set_nominator_min_required_stake {
                 0u64
             ));
             assert_eq!(
-                SubtensorModule::get_stake_for_coldkey_and_hotkey(&cold1, &hot1),
+                SubtensorModule::get_stake_for_hotkey_and_coldkey_on_subnet(&hot1, &cold1, netuid),
                 1
             );
             assert_eq!(
-                SubtensorModule::get_stake_for_coldkey_and_hotkey(&cold1, &hot2),
+                SubtensorModule::get_stake_for_hotkey_and_coldkey_on_subnet(&hot2, &cold1, netuid),
                 1
             );
             assert_eq!(
-                SubtensorModule::get_stake_for_coldkey_and_hotkey(&cold2, &hot1),
+                SubtensorModule::get_stake_for_hotkey_and_coldkey_on_subnet(&hot1, &cold2, netuid),
                 1
             );
             assert_eq!(
-                SubtensorModule::get_stake_for_coldkey_and_hotkey(&cold2, &hot2),
+                SubtensorModule::get_stake_for_hotkey_and_coldkey_on_subnet(&hot2, &cold2, netuid),
                 1
             );
 
@@ -1045,19 +1040,19 @@ mod sudo_set_nominator_min_required_stake {
                 10u64
             ));
             assert_eq!(
-                SubtensorModule::get_stake_for_coldkey_and_hotkey(&cold1, &hot1),
+                SubtensorModule::get_stake_for_hotkey_and_coldkey_on_subnet(&hot1, &cold1, netuid),
                 1
             );
             assert_eq!(
-                SubtensorModule::get_stake_for_coldkey_and_hotkey(&cold1, &hot2),
+                SubtensorModule::get_stake_for_hotkey_and_coldkey_on_subnet(&hot2, &cold1, netuid),
                 0
             );
             assert_eq!(
-                SubtensorModule::get_stake_for_coldkey_and_hotkey(&cold2, &hot1),
+                SubtensorModule::get_stake_for_hotkey_and_coldkey_on_subnet(&hot1, &cold2, netuid),
                 0
             );
             assert_eq!(
-                SubtensorModule::get_stake_for_coldkey_and_hotkey(&cold2, &hot2),
+                SubtensorModule::get_stake_for_hotkey_and_coldkey_on_subnet(&hot2, &cold2, netuid),
                 1
             );
 
@@ -1140,30 +1135,6 @@ fn test_sudo_set_commit_reveal_weights_enabled() {
 }
 
 #[test]
-fn test_sudo_set_target_stakes_per_interval() {
-    new_test_ext().execute_with(|| {
-        let to_be_set = 100;
-        let init_value = SubtensorModule::get_target_stakes_per_interval();
-        assert_eq!(
-            AdminUtils::sudo_set_target_stakes_per_interval(
-                <<Test as Config>::RuntimeOrigin>::signed(U256::from(1)),
-                to_be_set
-            ),
-            Err(DispatchError::BadOrigin)
-        );
-        assert_eq!(
-            SubtensorModule::get_target_stakes_per_interval(),
-            init_value
-        );
-        assert_ok!(AdminUtils::sudo_set_target_stakes_per_interval(
-            <<Test as Config>::RuntimeOrigin>::root(),
-            to_be_set
-        ));
-        assert_eq!(SubtensorModule::get_target_stakes_per_interval(), to_be_set);
-    });
-}
-
-#[test]
 fn test_sudo_set_liquid_alpha_enabled() {
     new_test_ext().execute_with(|| {
         let netuid: u16 = 1;
@@ -1212,10 +1183,11 @@ fn test_sudo_get_set_alpha() {
 
         // Enable Liquid Alpha and setup
         SubtensorModule::set_liquid_alpha_enabled(netuid, true);
-        migrations::migrate_create_root_network::migrate_create_root_network::<Test>();
+        pallet_subtensor::migrations::migrate_create_root_network::migrate_create_root_network::<
+            Test,
+        >();
         SubtensorModule::add_balance_to_coldkey_account(&coldkey, 1_000_000_000_000_000);
         assert_ok!(SubtensorModule::root_register(signer.clone(), hotkey,));
-        assert_ok!(SubtensorModule::add_stake(signer.clone(), hotkey, 1000));
 
         // Should fail as signer does not own the subnet
         assert_err!(
@@ -1223,7 +1195,7 @@ fn test_sudo_get_set_alpha() {
             DispatchError::BadOrigin
         );
 
-        assert_ok!(SubtensorModule::register_network(signer.clone()));
+        assert_ok!(SubtensorModule::register_network(signer.clone(), hotkey));
 
         assert_ok!(AdminUtils::sudo_set_alpha_values(
             signer.clone(),

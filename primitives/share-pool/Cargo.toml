@@ -1,0 +1,18 @@
+[package]
+name = "share-pool"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+substrate-fixed = { workspace = true }
+sp-std = { workspace = true }
+
+[lints]
+workspace = true
+
+[features]
+default = ["std"]
+std = [
+	"substrate-fixed/std",
+	"sp-std/std",
+]

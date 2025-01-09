@@ -958,25 +958,25 @@ pub mod pallet {
             Ok(())
         }
 
-        /// The extrinsic sets the target stake per interval.
-        /// It is only callable by the root account.
-        /// The extrinsic will call the Subtensor pallet to set target stake per interval.
-        #[pallet::call_index(47)]
-        #[pallet::weight((0, DispatchClass::Operational, Pays::No))]
-        pub fn sudo_set_target_stakes_per_interval(
-            origin: OriginFor<T>,
-            target_stakes_per_interval: u64,
-        ) -> DispatchResult {
-            ensure_root(origin)?;
-            pallet_subtensor::Pallet::<T>::set_target_stakes_per_interval(
-                target_stakes_per_interval,
-            );
-            log::debug!(
-                "TxTargetStakesPerIntervalSet( set_target_stakes_per_interval: {:?} ) ",
-                target_stakes_per_interval
-            );
-            Ok(())
-        }
+        // The extrinsic sets the target stake per interval.
+        // It is only callable by the root account.
+        // The extrinsic will call the Subtensor pallet to set target stake per interval.
+        // #[pallet::call_index(47)]
+        // #[pallet::weight((0, DispatchClass::Operational, Pays::No))]
+        // pub fn sudo_set_target_stakes_per_interval(
+        //     origin: OriginFor<T>,
+        //     target_stakes_per_interval: u64,
+        // ) -> DispatchResult {
+        //     ensure_root(origin)?;
+        //     pallet_subtensor::Pallet::<T>::set_target_stakes_per_interval(
+        //         target_stakes_per_interval,
+        //     );
+        //     log::debug!(
+        //         "TxTargetStakesPerIntervalSet( set_target_stakes_per_interval: {:?} ) ",
+        //         target_stakes_per_interval
+        //     ); (DEPRECATED)
+        //     Ok(())
+        // } (DEPRECATED)
 
         /// The extrinsic enabled/disables commit/reaveal for a given subnet.
         /// It is only callable by the root account or subnet owner.
@@ -1041,35 +1041,21 @@ pub mod pallet {
             )
         }
 
-        /// Sets the hotkey emission tempo.
-        ///
-        /// This extrinsic allows the root account to set the hotkey emission tempo, which determines
-        /// the number of blocks before a hotkey drains accumulated emissions through to nominator staking accounts.
-        ///
-        /// # Arguments
-        /// * `origin` - The origin of the call, which must be the root account.
-        /// * `emission_tempo` - The new emission tempo value to set.
-        ///
-        /// # Emits
-        /// * `Event::HotkeyEmissionTempoSet` - When the hotkey emission tempo is successfully set.
-        ///
-        /// # Errors
-        /// * `DispatchError::BadOrigin` - If the origin is not the root account.
-        // #[pallet::weight(<T as Config>::WeightInfo::sudo_set_hotkey_emission_tempo())]
-        #[pallet::call_index(52)]
-        #[pallet::weight((0, DispatchClass::Operational, Pays::No))]
-        pub fn sudo_set_hotkey_emission_tempo(
-            origin: OriginFor<T>,
-            emission_tempo: u64,
-        ) -> DispatchResult {
-            ensure_root(origin)?;
-            pallet_subtensor::Pallet::<T>::set_hotkey_emission_tempo(emission_tempo);
-            log::debug!(
-                "HotkeyEmissionTempoSet( emission_tempo: {:?} )",
-                emission_tempo
-            );
-            Ok(())
-        }
+        // DEPRECATED
+        // #[pallet::call_index(52)]
+        // #[pallet::weight((0, DispatchClass::Operational, Pays::No))]
+        // pub fn sudo_set_hotkey_emission_tempo(
+        //     origin: OriginFor<T>,
+        //     emission_tempo: u64,
+        // ) -> DispatchResult {
+        //     ensure_root(origin)?;
+        //     pallet_subtensor::Pallet::<T>::set_hotkey_emission_tempo(emission_tempo);
+        //     log::debug!(
+        //         "HotkeyEmissionTempoSet( emission_tempo: {:?} )",
+        //         emission_tempo
+        //     );
+        //     Ok(())
+        // }
 
         /// Sets the maximum stake allowed for a specific network.
         ///

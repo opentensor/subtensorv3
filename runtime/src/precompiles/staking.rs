@@ -68,6 +68,10 @@ impl StakingPrecompile {
     fn add_stake(handle: &mut impl PrecompileHandle, data: &[u8]) -> PrecompileResult {
         let hotkey = Self::parse_hotkey(data)?.into();
         let amount: U256 = handle.context().apparent_value;
+
+        // TODO: Use netuid method parameter here
+        let netuid: u16 = 0;
+
         let amount_sub =
             <Runtime as pallet_evm::Config>::BalanceConverter::into_substrate_balance(amount)
                 .ok_or(ExitError::OutOfFund)?;
@@ -75,6 +79,7 @@ impl StakingPrecompile {
         // Create the add_stake call
         let call = RuntimeCall::SubtensorModule(pallet_subtensor::Call::<Runtime>::add_stake {
             hotkey,
+            netuid,
             amount_staked: amount_sub.unique_saturated_into(),
         });
         // Dispatch the add_stake call
@@ -82,6 +87,9 @@ impl StakingPrecompile {
     }
     fn remove_stake(handle: &mut impl PrecompileHandle, data: &[u8]) -> PrecompileResult {
         let hotkey = Self::parse_hotkey(data)?.into();
+
+        // TODO: Use netuid method parameter here
+        let netuid: u16 = 0;
 
         // We have to treat this as uint256 (because of Solidity ABI encoding rules, it pads uint64),
         // but this will never exceed 8 bytes, se we will ignore higher bytes and will only use lower
@@ -96,6 +104,7 @@ impl StakingPrecompile {
 
         let call = RuntimeCall::SubtensorModule(pallet_subtensor::Call::<Runtime>::remove_stake {
             hotkey,
+            netuid,
             amount_unstaked: amount_sub.unique_saturated_into(),
         });
         Self::dispatch(handle, call)

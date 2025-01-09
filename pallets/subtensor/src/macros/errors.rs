@@ -25,10 +25,10 @@ mod errors {
         /// Request to stake, unstake or subscribe is made by a coldkey that is not associated with
         /// the hotkey account.
         NonAssociatedColdKey,
-        /// The hotkey is not a delegate and the signer is not the owner of the hotkey.
-        HotKeyNotDelegateAndSignerNotOwnHotKey,
         /// Stake amount to withdraw is zero.
         StakeToWithdrawIsZero,
+        /// The caller does not have enought stake to perform this action.
+        NotEnoughStake,
         /// The caller is requesting removing more stake than there exists in the staking account.
         /// See: "[remove_stake()]".
         NotEnoughStakeToWithdraw,
@@ -118,8 +118,6 @@ mod errors {
         CanNotSetRootNetworkWeights,
         /// No neuron ID is available.
         NoNeuronIdAvailable,
-        /// Stake amount below the minimum threshold for nominator validations.
-        NomStakeBelowMinimumThreshold,
         /// Delegate take is too low.
         DelegateTakeTooLow,
         /// Delegate take is too high.
@@ -169,6 +167,12 @@ mod errors {
         TxChildkeyTakeRateLimitExceeded,
         /// Invalid identity.
         InvalidIdentity,
+        /// Trying to register a subnet into a mechanism that does not exist.
+        MechanismDoesNotExist,
+        /// Trying to unstake your lock amount.
+        CannotUnstakeLock,
+        /// Trying to perform action on non-existent subnet.
+        SubnetNotExists,
         /// Maximum commit limit reached
         TooManyUnrevealedCommits,
         /// Attempted to reveal weights that are expired.

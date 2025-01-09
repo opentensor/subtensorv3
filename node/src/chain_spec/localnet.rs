@@ -120,5 +120,8 @@ fn localnet_genesis(
         "senateMembers": {
             "members": senate_members,
         },
+        "evmChainId": {
+            "chainId": 42,
+        },
     })
 }
