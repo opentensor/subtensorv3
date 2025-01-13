@@ -2,12 +2,14 @@
 
 ## Lifecycle of a Pull Request
 
-1. Individuals wishing to contribute to subtensor should develop their change/feature/fix in a
-   [Pull Request](https://github.com/opentensor/subtensor/compare) (PR) targeting the `devnet-ready`
-   branch of the subtensor GitHub repository. It is recommended to start your pull request as a
-   draft initially until you are ready to have other developers actively look at it. Any
-   changes to pallet/runtime code should be accompanied by integration and/or unit tests fully
-   testing all the edge cases of this functionality, if applicable.
+![image](docs/img/pr-lifecycle.png)
+
+1. Individuals wishing to contribute to subtensor should develop their change/feature/fix based on 
+   the `devnet-ready` branch and create a [Pull Request](https://github.com/opentensor/subtensor/compare) 
+   (PR) targeting the `devnet-ready` branch of the subtensor GitHub repository. It is recommended 
+   to start your pull request as a draft initially until you are ready to have other developers 
+   actively look at it. Any changes to pallet/runtime code should be accompanied by integration 
+   and/or unit tests fully testing all the edge cases of this functionality, if applicable.
 2. Once you have finished developing your change/feature/fix and the Rust portion of the CI is
    passing for your PR (everything prefixed with "CI"), you should mark your PR as "Ready for
    Review" and request review from "Nucleus".
