@@ -1,6 +1,7 @@
 mod batch_tx;
 mod children;
 mod coinbase;
+mod delegate_info;
 mod difficulty;
 mod emission;
 mod epoch;
