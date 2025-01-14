@@ -25,23 +25,18 @@
 //   - Precompile checks the result of do_remove_stake and, in case of a failure, reverts the transaction.
 //
 
-use frame_system::RawOrigin;
-use pallet_evm::{AddressMapping, BalanceConverter, HashedAddressMapping};
-use pallet_evm::{
-    ExitError, ExitSucceed, PrecompileFailure, PrecompileHandle, PrecompileOutput, PrecompileResult,
-};
-use sp_core::crypto::Ss58Codec;
+use pallet_evm::BalanceConverter;
+use pallet_evm::{ExitError, PrecompileFailure, PrecompileHandle, PrecompileResult};
 use sp_core::U256;
-use sp_runtime::traits::Dispatchable;
-use sp_runtime::traits::{BlakeTwo256, UniqueSaturatedInto};
-use sp_runtime::AccountId32;
+use sp_runtime::traits::UniqueSaturatedInto;
 
-use crate::precompiles::{get_method_id, get_slice};
+use crate::precompiles::{dispatch, get_method_id, get_slice};
 use sp_std::vec;
 
 use crate::{Runtime, RuntimeCall};
 pub const STAKING_PRECOMPILE_INDEX: u64 = 2049;
-
+// this is staking smart contract's(0x0000000000000000000000000000000000000801) sr25519 address
+pub const STAKING_CONTRACT_ADDRESS: &str = "5CwnBK9Ack1mhznmCnwiibCNQc174pYQVktYW3ayRpLm4K2X";
 pub struct StakingPrecompile;
 
 impl StakingPrecompile {
@@ -83,7 +78,7 @@ impl StakingPrecompile {
             amount_staked: amount_sub.unique_saturated_into(),
         });
         // Dispatch the add_stake call
-        Self::dispatch(handle, call)
+        dispatch(handle, call, STAKING_CONTRACT_ADDRESS)
     }
     fn remove_stake(handle: &mut impl PrecompileHandle, data: &[u8]) -> PrecompileResult {
         let hotkey = Self::parse_hotkey(data)?.into();
@@ -107,7 +102,7 @@ impl StakingPrecompile {
             netuid,
             amount_unstaked: amount_sub.unique_saturated_into(),
         });
-        Self::dispatch(handle, call)
+        dispatch(handle, call, STAKING_CONTRACT_ADDRESS)
     }
 
     fn parse_hotkey(data: &[u8]) -> Result<[u8; 32], PrecompileFailure> {
@@ -119,77 +114,5 @@ impl StakingPrecompile {
         let mut hotkey = [0u8; 32];
         hotkey.copy_from_slice(get_slice(data, 0, 32)?);
         Ok(hotkey)
-    }
-
-    fn dispatch(handle: &mut impl PrecompileHandle, call: RuntimeCall) -> PrecompileResult {
-        let account_id =
-            <HashedAddressMapping<BlakeTwo256> as AddressMapping<AccountId32>>::into_account_id(
-                handle.context().caller,
-            );
-
-        // Transfer the amount back to the caller before executing the staking operation
-        // let caller = handle.context().caller;
-        let amount = handle.context().apparent_value;
-
-        if !amount.is_zero() {
-            Self::transfer_back_to_caller(&account_id, amount)?;
-        }
-
-        let result = call.dispatch(RawOrigin::Signed(account_id.clone()).into());
-        match &result {
-            Ok(post_info) => log::info!("Dispatch succeeded. Post info: {:?}", post_info),
-            Err(dispatch_error) => log::error!("Dispatch failed. Error: {:?}", dispatch_error),
-        }
-        match result {
-            Ok(_) => Ok(PrecompileOutput {
-                exit_status: ExitSucceed::Returned,
-                output: vec![],
-            }),
-            Err(_) => Err(PrecompileFailure::Error {
-                exit_status: ExitError::Other("Subtensor call failed".into()),
-            }),
-        }
-    }
-
-    fn transfer_back_to_caller(
-        account_id: &AccountId32,
-        amount: U256,
-    ) -> Result<(), PrecompileFailure> {
-        // this is staking smart contract's(0x0000000000000000000000000000000000000801) sr25519 address
-        let smart_contract_account_id =
-            match AccountId32::from_ss58check("5CwnBK9Ack1mhznmCnwiibCNQc174pYQVktYW3ayRpLm4K2X") {
-                Ok(addr) => addr,
-                Err(_) => {
-                    return Err(PrecompileFailure::Error {
-                        exit_status: ExitError::Other("Invalid SS58 address".into()),
-                    });
-                }
-            };
-        let amount_sub =
-            <Runtime as pallet_evm::Config>::BalanceConverter::into_substrate_balance(amount)
-                .ok_or(ExitError::OutOfFund)?;
-
-        // Create a transfer call from the smart contract to the caller
-        let transfer_call =
-            RuntimeCall::Balances(pallet_balances::Call::<Runtime>::transfer_allow_death {
-                dest: account_id.clone().into(),
-                value: amount_sub.unique_saturated_into(),
-            });
-
-        // Execute the transfer
-        let transfer_result =
-            transfer_call.dispatch(RawOrigin::Signed(smart_contract_account_id).into());
-
-        if let Err(dispatch_error) = transfer_result {
-            log::error!(
-                "Transfer back to caller failed. Error: {:?}",
-                dispatch_error
-            );
-            return Err(PrecompileFailure::Error {
-                exit_status: ExitError::Other("Transfer back to caller failed".into()),
-            });
-        }
-
-        Ok(())
     }
 }

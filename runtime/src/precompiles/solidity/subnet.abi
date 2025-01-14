@@ -1,0 +1,32 @@
+[
+    {
+        "inputs": [
+            {
+                "internalType": "bytes",
+                "name": "subnetName",
+                "type": "bytes"
+            },
+            {
+                "internalType": "bytes",
+                "name": "githubRepo",
+                "type": "bytes"
+            },
+            {
+                "internalType": "bytes",
+                "name": "subnetContact",
+                "type": "bytes"
+            }
+        ],
+        "name": "registerNetwork",
+        "outputs": [],
+        "stateMutability": "payable",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "registerNetwork",
+        "outputs": [],
+        "stateMutability": "payable",
+        "type": "function"
+    }
+]
