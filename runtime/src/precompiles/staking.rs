@@ -59,6 +59,9 @@ impl StakingPrecompile {
             id if id == get_method_id("removeStake(bytes32,uint256,uint256)") => {
                 Self::remove_stake(handle, &method_input)
             }
+            id if id == get_method_id("getStakeColdkey(bytes32)") => {
+                Self::get_stake_coldkey(&method_input)
+            }
             id if id == get_method_id("getStake(bytes32,bytes32,uint256)") => {
                 Self::get_stake(&method_input)
             }
@@ -69,7 +72,7 @@ impl StakingPrecompile {
     }
 
     fn add_stake(handle: &mut impl PrecompileHandle, data: &[u8]) -> PrecompileResult {
-        let hotkey = Self::parse_hotkey(data)?.into();
+        let hotkey = Self::parse_key(data)?.into();
         let amount: U256 = handle.context().apparent_value;
         let netuid = Self::parse_netuid(data, 0x3E)?;
 
@@ -88,7 +91,7 @@ impl StakingPrecompile {
     }
 
     fn remove_stake(handle: &mut impl PrecompileHandle, data: &[u8]) -> PrecompileResult {
-        let hotkey = Self::parse_hotkey(data)?.into();
+        let hotkey = Self::parse_key(data)?.into();
         let netuid = Self::parse_netuid(data, 0x5E)?;
 
         // We have to treat this as uint256 (because of Solidity ABI encoding rules, it pads uint64),
@@ -110,9 +113,24 @@ impl StakingPrecompile {
         Self::dispatch(handle, call)
     }
 
+    fn get_stake_coldkey(data: &[u8]) -> PrecompileResult {
+        let coldkey: AccountId32 = Self::parse_key(data)?.into();
+
+        // get total stake of coldkey
+        let total_stake = pallet_subtensor::Pallet::<Runtime>::get_total_stake_for_coldkey(&coldkey);
+        let result_u256 = U256::from(total_stake);
+        let mut result = [0_u8; 32];
+        U256::to_big_endian(&result_u256, &mut result);
+
+        Ok(PrecompileOutput {
+            exit_status: ExitSucceed::Returned,
+            output: result.into(),
+        })
+    }
+
     fn get_stake(data: &[u8]) -> PrecompileResult {
         let (hotkey, coldkey) = Self::parse_hotkey_coldkey(data)?;
-        let netuid = Self::parse_netuid(data, 0x5E)?;
+        let netuid: u16 = Self::parse_netuid(data, 0x5E)?;
 
         let stake = pallet_subtensor::Pallet::<Runtime>::get_stake_for_hotkey_and_coldkey_on_subnet(
             &hotkey.into(),
@@ -149,15 +167,15 @@ impl StakingPrecompile {
         Ok((hotkey, coldkey))
     }
 
-    fn parse_hotkey(data: &[u8]) -> Result<[u8; 32], PrecompileFailure> {
+    fn parse_key(data: &[u8]) -> Result<[u8; 32], PrecompileFailure> {
         if data.len() < 32 {
             return Err(PrecompileFailure::Error {
                 exit_status: ExitError::InvalidRange,
             });
         }
-        let mut hotkey = [0u8; 32];
-        hotkey.copy_from_slice(get_slice(data, 0, 32)?);
-        Ok(hotkey)
+        let mut key = [0u8; 32];
+        key.copy_from_slice(get_slice(data, 0, 32)?);
+        Ok(key)
     }
 
     fn parse_netuid(data: &[u8], offset: usize) -> Result<u16, PrecompileFailure> {

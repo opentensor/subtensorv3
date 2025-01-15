@@ -40,7 +40,19 @@ interface IStaking {
    *   correctly attributed.
    * - The existing stake amount must be not lower than specified amount
    */
-  function removeStake(bytes32 hotkey, uint256 amount, uint256 netuid) external;
+  function removeStake(bytes32 hotkey, uint256 amount, uint16 netuid) external;
+
+  /**
+   * @dev Returns the amount of RAO staked by the coldkey.
+   *
+   * This function allows external accounts and contracts to query the amount of RAO staked by the coldkey
+   * which effectively calls `get_coldkey_stake` on the subtensor pallet with
+   * specified coldkey as a parameter.
+   *
+   * @param coldkey The coldkey public key (32 bytes).
+   * @return The amount of RAO staked by the coldkey.
+   */
+  function getStakeColdkey(bytes32 coldkey) external view returns (uint256);
 
   /**
   * @dev Returns the stake amount associated with the specified `hotkey` and `coldkey`.
