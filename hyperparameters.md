@@ -7,7 +7,7 @@ TxRateLimit: u64 = 1; // [1 @ 64,888]
 ### netuid 1 (text_prompting)
 ```rust
 Rho: u16 = 10;
-Kappa: u16 = 32_767; // 0.5 = 65535/2 
+Kappa: u16 = 32_767; // 0.5 = 65535/2
 MaxAllowedUids: u16 = 1024;
 Issuance: u64 = 0;
 MinAllowedWeights: u16 = 8;
@@ -32,10 +32,11 @@ ActivityCutoff: u16 = 5000;
 MaxRegistrationsPerBlock: u16 = 1;
 PruningScore : u16 = u16::MAX;
 BondsMovingAverage: u64 = 900_000;
+BondsPenalty: u16 = 0;
 WeightsVersionKey: u64 = 1020;
 MinDifficulty: u64 = 10_000_000;
 MaxDifficulty: u64 = u64::MAX / 4;
-ServingRateLimit: u64 = 10; 
+ServingRateLimit: u64 = 10;
 Burn: u64 = 1_000_000_000; // 1 tao
 MinBurn: u64 = 1_000_000_000; // 1 tao
 MaxBurn: u64 = 100_000_000_000; // 100 tao
@@ -45,7 +46,7 @@ WeightsSetRateLimit: u64 = 100;
 ### netuid 3 (causallmnext)
 ```rust
 Rho: u16 = 10;
-Kappa: u16 = 32_767; // 0.5 = 65535/2 
+Kappa: u16 = 32_767; // 0.5 = 65535/2
 MaxAllowedUids: u16 = 4096;
 Issuance: u64 = 0;
 MinAllowedWeights: u16 = 50;
@@ -70,6 +71,7 @@ ActivityCutoff: u16 = 5000; // [5000 @ 7,163]
 MaxRegistrationsPerBlock: u16 = 1;
 PruningScore : u16 = u16::MAX;
 BondsMovingAverage: u64 = 900_000;
+BondsPenalty: u16 = 0;
 WeightsVersionKey: u64 = 400;
 MinDifficulty: u64 = 10_000_000;
 MaxDifficulty: u64 = u64::MAX / 4;

@@ -101,6 +101,14 @@ mod benchmarks {
     }
 
     #[benchmark]
+    fn sudo_set_bonds_penalty() {
+        pallet_subtensor::Pallet::<T>::init_new_network(1u16 /*netuid*/, 1u16 /*tempo*/);
+
+        #[extrinsic_call]
+        _(RawOrigin::Root, 1u16/*netuid*/, 100u16/*bonds_penalty*/)/*sudo_set_bonds_penalty*/;
+    }
+
+    #[benchmark]
     fn sudo_set_max_allowed_validators() {
         pallet_subtensor::Pallet::<T>::init_new_network(1u16 /*netuid*/, 1u16 /*tempo*/);
 

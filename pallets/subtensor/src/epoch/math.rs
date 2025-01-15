@@ -1023,7 +1023,7 @@ pub fn weighted_median_col_sparse(
 }
 
 // Element-wise interpolation of two matrices: Result = A + ratio * (B - A).
-// ratio is has intended range [0, 1]
+// ratio has intended range [0, 1]
 // ratio=0: Result = A
 // ratio=1: Result = B
 #[allow(dead_code)]
@@ -1055,7 +1055,7 @@ pub fn interpolate(mat1: &[Vec<I32F32>], mat2: &[Vec<I32F32>], ratio: I32F32) ->
 }
 
 // Element-wise interpolation of two sparse matrices: Result = A + ratio * (B - A).
-// ratio is has intended range [0, 1]
+// ratio has intended range [0, 1]
 // ratio=0: Result = A
 // ratio=1: Result = B
 #[allow(dead_code)]
