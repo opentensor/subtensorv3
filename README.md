@@ -49,7 +49,7 @@ Requirements:
 
 ---
 
-## For Subnet Development 
+## For Subnet Development
 
 If you are developing and testing subnet incentive mechanism, you will need to run a local subtensor node. Follow the detailed step-by-step instructions provided in the [**Subtensor Nodes** section in Bittensor Developer Documentation](https://docs.bittensor.com/subtensor-nodes).
 
@@ -216,7 +216,7 @@ If you want to see the multi-node consensus algorithm in action, refer to our
 A Substrate project such as this consists of a number of components that are spread across a few
 directories.
 
-### Node Capabilities 
+### Node Capabilities
 
 A blockchain node is an application that allows users to participate in a blockchain network.
 Substrate-based blockchain nodes expose a number of capabilities:
@@ -232,7 +232,7 @@ Substrate-based blockchain nodes expose a number of capabilities:
 
 **Directory structure**
 
-There are several files in the [`node`](./node/) directory. Make a note of the following important files: 
+There are several files in the [`node`](./node/) directory. Make a note of the following important files:
 
 - [`chain_spec.rs`](./node/src/chain_spec.rs): A
   [chain specification](https://docs.substrate.io/main-docs/build/chain-spec/) is a

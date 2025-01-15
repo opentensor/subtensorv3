@@ -1,0 +1,74 @@
+volumes:
+  subtensor-alice:
+  subtensor-bob:
+
+services:
+  common: &common
+    image: ghcr.io/opentensor/subtensor:latest-local
+    cpu_count: 4
+    mem_limit: 40000000000
+    memswap_limit: 80000000000
+    environment:
+      - CARGO_HOME=/var/www/node-subtensor/.cargo
+
+  alice:
+    <<: *common
+    container_name: subtensor-alice
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: subtensor-local
+    ports:
+      - "9944:9944"
+      - "30334:30334"
+    expose:
+      - 9944
+      - 30334
+    volumes:
+      - subtensor-alice:/tmp/blockchain
+    command:
+      - /bin/bash
+      - -c
+      - |
+        node-subtensor \
+          --base-path /tmp/blockchain \
+          --chain localnet.json \
+          --rpc-external \
+          --rpc-methods=unsafe \
+          --alice \
+          --port 30334 \
+          --rpc-port 9944 \
+          --validator \
+          --rpc-cors=all \
+          --allow-private-ipv4 \
+          --discover-local \
+          --unsafe-force-node-key-generation
+
+  bob:
+    <<: *common
+    container_name: subtensor-bob
+    expose:
+      - 9945
+      - 30335
+    ports:
+      - "9945:9945"
+      - "30335:30335"
+    volumes:
+      - subtensor-bob:/tmp/blockchain
+    command:
+      - /bin/bash
+      - -c
+      - |
+        node-subtensor \
+          --base-path /tmp/blockchain \
+          --chain localnet.json \
+          --bob \
+          --rpc-methods=unsafe \
+          --rpc-external \
+          --port 30335 \
+          --rpc-port 9945 \
+          --validator \
+          --rpc-cors=all \
+          --allow-private-ipv4 \
+          --discover-local \
+          --unsafe-force-node-key-generation
