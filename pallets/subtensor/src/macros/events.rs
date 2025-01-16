@@ -153,6 +153,8 @@ mod events {
             old_coldkey: T::AccountId,
             /// the account ID of new coldkey
             new_coldkey: T::AccountId,
+            /// the swap cost
+            swap_cost: u64,
         },
         /// All balance of a hotkey has been unstaked and transferred to a new coldkey
         AllBalanceUnstakedAndTransferredToNewColdkey {
@@ -173,6 +175,8 @@ mod events {
             new_coldkey: T::AccountId,
             /// The arbitration block for the coldkey swap
             execution_block: BlockNumberFor<T>,
+            /// The swap cost
+            swap_cost: u64,
         },
         /// The arbitration period has been extended
         ArbitrationPeriodExtended {
