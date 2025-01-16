@@ -179,6 +179,224 @@ fn test_replace_neuron_multiple_subnets() {
 }
 
 #[test]
+fn test_replace_neuron_with_stake_update() {
+    new_test_ext(1).execute_with(|| {
+        let block_number: u64 = 0;
+        let netuid: u16 = 1;
+        let netuid1: u16 = 2;
+        let tempo: u16 = 13;
+
+        let hotkey_account_id = U256::from(1);
+        let new_hotkey_account_id = U256::from(2);
+
+        let (nonce, work): (u64, Vec<u8>) = SubtensorModule::create_work_for_block_number(
+            netuid,
+            block_number,
+            111111,
+            &hotkey_account_id,
+        );
+        let (nonce1, work1): (u64, Vec<u8>) = SubtensorModule::create_work_for_block_number(
+            netuid1,
+            block_number,
+            111111 * 5,
+            &hotkey_account_id,
+        );
+
+        let coldkey_account_id = U256::from(1234);
+        let coldkey_account1_id = U256::from(1235);
+        let coldkey_account2_id = U256::from(1236);
+
+        let stake_amount = 1000;
+
+        //add network
+        add_network(netuid, tempo, 0);
+        add_network(netuid1, tempo, 0);
+
+        // Register a neuron on both networks.
+        assert_ok!(SubtensorModule::register(
+            <<Test as Config>::RuntimeOrigin>::signed(hotkey_account_id),
+            netuid,
+            block_number,
+            nonce,
+            work,
+            hotkey_account_id,
+            coldkey_account_id
+        ));
+        assert_ok!(SubtensorModule::register(
+            <<Test as Config>::RuntimeOrigin>::signed(hotkey_account_id),
+            netuid1,
+            block_number,
+            nonce1,
+            work1,
+            hotkey_account_id,
+            coldkey_account_id
+        ));
+
+        // Get UID
+        let neuron_uid = SubtensorModule::get_uid_for_net_and_hotkey(netuid, &hotkey_account_id);
+        assert_ok!(neuron_uid);
+
+        // Stake on neuron with multiple coldkeys.
+        SubtensorModule::add_balance_to_coldkey_account(&coldkey_account_id, stake_amount);
+        assert_ok!(SubtensorModule::add_stake(
+            <<Test as Config>::RuntimeOrigin>::signed(coldkey_account_id),
+            hotkey_account_id,
+            netuid,
+            stake_amount,
+        ));
+
+        SubtensorModule::add_balance_to_coldkey_account(&coldkey_account1_id, stake_amount + 1);
+        assert_ok!(SubtensorModule::add_stake(
+            <<Test as Config>::RuntimeOrigin>::signed(coldkey_account1_id),
+            hotkey_account_id,
+            netuid,
+            stake_amount + 1,
+        ));
+
+        SubtensorModule::add_balance_to_coldkey_account(&coldkey_account2_id, stake_amount + 2);
+        assert_ok!(SubtensorModule::add_stake(
+            <<Test as Config>::RuntimeOrigin>::signed(coldkey_account2_id),
+            hotkey_account_id,
+            netuid,
+            stake_amount + 2,
+        ));
+
+        // Check stake on neuron
+        assert_eq!(
+            SubtensorModule::get_stake_for_hotkey_and_coldkey_on_subnet(
+                &hotkey_account_id,
+                &coldkey_account_id,
+                netuid
+            ),
+            stake_amount - 1
+        );
+        assert_eq!(
+            SubtensorModule::get_stake_for_hotkey_and_coldkey_on_subnet(
+                &hotkey_account_id,
+                &coldkey_account1_id,
+                netuid
+            ),
+            stake_amount
+        );
+        assert_eq!(
+            SubtensorModule::get_stake_for_hotkey_and_coldkey_on_subnet(
+                &hotkey_account_id,
+                &coldkey_account2_id,
+                netuid
+            ),
+            stake_amount + 1
+        );
+
+        // Check total stake on neuron
+        assert_eq!(
+            SubtensorModule::get_stake_for_hotkey_on_subnet(&hotkey_account_id, netuid),
+            (stake_amount * 3)
+        );
+
+        // Replace the neuron.
+        SubtensorModule::replace_neuron(
+            netuid1,
+            neuron_uid.unwrap(),
+            &new_hotkey_account_id,
+            block_number,
+        );
+
+        // The stakes should still be on the neuron. It is still registered on one network.
+        assert!(SubtensorModule::is_hotkey_registered_on_any_network(
+            &hotkey_account_id
+        ));
+
+        // Check the stake is still on the coldkey accounts.
+        assert_eq!(
+            SubtensorModule::get_stake_for_hotkey_and_coldkey_on_subnet(
+                &hotkey_account_id,
+                &coldkey_account_id,
+                netuid
+            ),
+            stake_amount - 1
+        );
+        assert_eq!(
+            SubtensorModule::get_stake_for_hotkey_and_coldkey_on_subnet(
+                &hotkey_account_id,
+                &coldkey_account1_id,
+                netuid
+            ),
+            stake_amount
+        );
+        assert_eq!(
+            SubtensorModule::get_stake_for_hotkey_and_coldkey_on_subnet(
+                &hotkey_account_id,
+                &coldkey_account2_id,
+                netuid
+            ),
+            stake_amount + 1
+        );
+
+        // Check total stake on neuron
+        assert_eq!(
+            SubtensorModule::get_stake_for_hotkey_on_subnet(&hotkey_account_id, netuid),
+            (stake_amount * 3)
+        );
+
+        // replace on second network
+        SubtensorModule::replace_neuron(
+            netuid,
+            neuron_uid.unwrap(),
+            &new_hotkey_account_id,
+            block_number,
+        );
+
+        // The neuron should be unregistered now.
+        assert!(!SubtensorModule::is_hotkey_registered_on_any_network(
+            &hotkey_account_id
+        ));
+
+        // Check the stake is now on the free balance of the coldkey accounts.
+        assert_eq!(
+            SubtensorModule::get_stake_for_hotkey_and_coldkey_on_subnet(
+                &hotkey_account_id,
+                &coldkey_account_id,
+                netuid
+            ),
+            0
+        );
+        assert_eq!(Balances::free_balance(coldkey_account_id), stake_amount);
+
+        assert_eq!(
+            SubtensorModule::get_stake_for_hotkey_and_coldkey_on_subnet(
+                &hotkey_account_id,
+                &coldkey_account1_id,
+                netuid
+            ),
+            0
+        );
+        assert_eq!(
+            Balances::free_balance(coldkey_account1_id),
+            stake_amount + 1
+        );
+
+        assert_eq!(
+            SubtensorModule::get_stake_for_hotkey_and_coldkey_on_subnet(
+                &hotkey_account_id,
+                &coldkey_account2_id,
+                netuid
+            ),
+            0
+        );
+        assert_eq!(
+            Balances::free_balance(coldkey_account2_id),
+            stake_amount + 2
+        );
+
+        // Check total stake on neuron
+        assert_eq!(
+            SubtensorModule::get_stake_for_hotkey_on_subnet(&hotkey_account_id, netuid),
+            0
+        );
+    });
+}
+
+#[test]
 fn test_neuron_certificate() {
     new_test_ext(1).execute_with(|| {
         // 512 bits key

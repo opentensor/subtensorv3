@@ -40,6 +40,27 @@ impl<T: Config> Pallet<T> {
 
         // 4. Clear neuron certificates
         NeuronCertificates::<T>::remove(netuid, old_hotkey.clone());
+
+        // 5 unstake all from old hotkey
+        for (coldkey, stake_netuid) in Alpha::<T>::iter_key_prefix((&old_hotkey,)) {
+            if stake_netuid == netuid {
+                let current_stake =
+                    Self::get_stake_for_hotkey_and_coldkey_on_subnet(&old_hotkey, &coldkey, netuid);
+
+                let tao_unstaked: u64 =
+                    Self::unstake_from_subnet(&old_hotkey, &coldkey, netuid, current_stake);
+
+                // We add the balance to the coldkey. If the above fails we will not credit this coldkey.
+                Self::add_balance_to_coldkey_account(&coldkey, tao_unstaked);
+            }
+        }
+
+        // 6 check old hotkey stake below stake threshold
+        if Self::get_total_stake_for_hotkey(&old_hotkey) < StakeThreshold::<T>::get() {
+            Self::get_all_subnet_netuids().iter().for_each(|netuid| {
+                PendingChildKeys::<T>::remove(netuid, &old_hotkey);
+            })
+        }
     }
 
     /// Appends the uid to the network.
