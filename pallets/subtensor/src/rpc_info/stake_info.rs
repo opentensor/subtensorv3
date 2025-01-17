@@ -2,13 +2,12 @@ use super::*;
 use frame_support::pallet_prelude::{Decode, Encode};
 extern crate alloc;
 use codec::Compact;
-use sp_core::hexdisplay::AsBytesRef;
 
-#[freeze_struct("c5e3871b39062f8e")]
-#[derive(Decode, Encode, PartialEq, Eq, Clone, Debug)]
-pub struct StakeInfo<T: Config> {
-    hotkey: T::AccountId,
-    coldkey: T::AccountId,
+#[freeze_struct("4f16c654467bc8b6")]
+#[derive(Decode, Encode, PartialEq, Eq, Clone, Debug, TypeInfo)]
+pub struct StakeInfo<AccountId: TypeInfo + Encode + Decode> {
+    hotkey: AccountId,
+    coldkey: AccountId,
     netuid: Compact<u16>,
     stake: Compact<u64>,
     locked: Compact<u64>,
@@ -20,16 +19,16 @@ pub struct StakeInfo<T: Config> {
 impl<T: Config> Pallet<T> {
     fn _get_stake_info_for_coldkeys(
         coldkeys: Vec<T::AccountId>,
-    ) -> Vec<(T::AccountId, Vec<StakeInfo<T>>)> {
+    ) -> Vec<(T::AccountId, Vec<StakeInfo<T::AccountId>>)> {
         if coldkeys.is_empty() {
             return Vec::new(); // No coldkeys to check
         }
         let netuids: Vec<u16> = Self::get_all_subnet_netuids();
-        let mut stake_info: Vec<(T::AccountId, Vec<StakeInfo<T>>)> = Vec::new();
+        let mut stake_info: Vec<(T::AccountId, Vec<StakeInfo<T::AccountId>>)> = Vec::new();
         for coldkey_i in coldkeys.clone().iter() {
             // Get all hotkeys associated with this coldkey.
             let staking_hotkeys = StakingHotkeys::<T>::get(coldkey_i.clone());
-            let mut stake_info_for_coldkey: Vec<StakeInfo<T>> = Vec::new();
+            let mut stake_info_for_coldkey: Vec<StakeInfo<T::AccountId>> = Vec::new();
             for netuid_i in netuids.clone().iter() {
                 for hotkey_i in staking_hotkeys.clone().iter() {
                     let alpha: u64 = Self::get_stake_for_hotkey_and_coldkey_on_subnet(
@@ -59,35 +58,19 @@ impl<T: Config> Pallet<T> {
     }
 
     pub fn get_stake_info_for_coldkeys(
-        coldkey_account_vecs: Vec<Vec<u8>>,
-    ) -> Vec<(T::AccountId, Vec<StakeInfo<T>>)> {
-        let mut coldkeys: Vec<T::AccountId> = Vec::new();
-        for coldkey_account_vec in coldkey_account_vecs {
-            if coldkey_account_vec.len() != 32 {
-                continue; // Invalid coldkey
-            }
-            let Ok(coldkey) = T::AccountId::decode(&mut coldkey_account_vec.as_bytes_ref()) else {
-                continue;
-            };
-            coldkeys.push(coldkey);
+        coldkey_accounts: Vec<T::AccountId>,
+    ) -> Vec<(T::AccountId, Vec<StakeInfo<T::AccountId>>)> {
+        if coldkey_accounts.is_empty() {
+            return Vec::new(); // Empty coldkeys
         }
 
-        if coldkeys.is_empty() {
-            return Vec::new(); // Invalid coldkey
-        }
-
-        Self::_get_stake_info_for_coldkeys(coldkeys)
+        Self::_get_stake_info_for_coldkeys(coldkey_accounts)
     }
 
-    pub fn get_stake_info_for_coldkey(coldkey_account_vec: Vec<u8>) -> Vec<StakeInfo<T>> {
-        if coldkey_account_vec.len() != 32 {
-            return Vec::new(); // Invalid coldkey
-        }
-
-        let Ok(coldkey) = T::AccountId::decode(&mut coldkey_account_vec.as_bytes_ref()) else {
-            return Vec::new();
-        };
-        let stake_info = Self::_get_stake_info_for_coldkeys(vec![coldkey]);
+    pub fn get_stake_info_for_coldkey(
+        coldkey_account: T::AccountId,
+    ) -> Vec<StakeInfo<T::AccountId>> {
+        let stake_info = Self::_get_stake_info_for_coldkeys(vec![coldkey_account]);
 
         if stake_info.is_empty() {
             Vec::new() // Invalid coldkey

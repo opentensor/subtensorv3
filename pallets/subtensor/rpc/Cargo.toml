@@ -12,9 +12,7 @@ publish = false
 workspace = true
 
 [dependencies]
-codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = [
-  "derive",
-] }
+codec = { workspace = true }
 jsonrpsee = { workspace = true, features = ["client-core", "server", "macros"] }
 serde = { workspace = true, features = ["derive"] }
 

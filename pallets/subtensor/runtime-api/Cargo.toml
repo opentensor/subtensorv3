@@ -13,9 +13,10 @@ workspace = true
 
 [dependencies]
 sp-api = { workspace = true }
+sp-runtime = { workspace = true }
 frame-support = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
-
+codec = { workspace = true }
 # local
 pallet-subtensor = { version = "4.0.0-dev", path = "../../subtensor", default-features = false }
 
@@ -23,8 +24,10 @@ pallet-subtensor = { version = "4.0.0-dev", path = "../../subtensor", default-fe
 default = ["std"]
 std = [
 	"sp-api/std",
+	"sp-runtime/std",
 	"frame-support/std",
 	"pallet-subtensor/std",
-	"serde/std"
+	"serde/std",
+	"codec/std"
 ]
 pow-faucet = []
