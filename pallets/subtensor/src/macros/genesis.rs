@@ -1,5 +1,4 @@
 use frame_support::pallet_macros::pallet_section;
-
 /// A [`pallet_section`] that defines the errors for a pallet.
 /// This can later be imported into the pallet using [`import_section`].
 #[pallet_section]
@@ -20,7 +19,7 @@ mod genesis {
             // Increment the number of total networks.
             TotalNetworks::<T>::mutate(|n| *n = n.saturating_add(1));
 
-            // Set the number of validators to 1.
+            // Set the number of validators to 0.
             SubnetworkN::<T>::insert(root_netuid, 0);
 
             // Set the maximum number to the number of senate members.

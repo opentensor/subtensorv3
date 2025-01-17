@@ -77,4 +77,4 @@ jobs:
         run: |
           pwd
           ls
-          LOCALNET_SH_PATH="${{ github.workspace }}/scripts/localnet.sh" pytest tests/e2e_tests/ -s
+          CHAIN="e2e_test" LOCALNET_SH_PATH="${{ github.workspace }}/scripts/localnet.sh" pytest tests/e2e_tests/ -s

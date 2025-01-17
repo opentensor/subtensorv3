@@ -610,27 +610,33 @@ impl<T: Config> Pallet<T> {
     ///     - The lock cost for the network.
     ///
     pub fn get_network_lock_cost() -> u64 {
-        let last_lock = Self::get_network_last_lock();
-        let min_lock = Self::get_network_min_lock();
-        let last_lock_block = Self::get_network_last_lock_block();
-        let current_block = Self::get_current_block_as_u64();
-        let lock_reduction_interval = Self::get_lock_reduction_interval();
-        let mult = if last_lock_block == 0 { 1 } else { 2 };
+        #[cfg(feature = "pow-faucet")]
+        return 0_u64;
 
-        let mut lock_cost = last_lock.saturating_mul(mult).saturating_sub(
-            last_lock
-                .saturating_div(lock_reduction_interval)
-                .saturating_mul(current_block.saturating_sub(last_lock_block)),
-        );
+        #[cfg(not(feature = "pow-faucet"))]
+        {
+            let last_lock = Self::get_network_last_lock();
+            let min_lock = Self::get_network_min_lock();
+            let last_lock_block = Self::get_network_last_lock_block();
+            let current_block = Self::get_current_block_as_u64();
+            let lock_reduction_interval = Self::get_lock_reduction_interval();
+            let mult = if last_lock_block == 0 { 1 } else { 2 };
 
-        if lock_cost < min_lock {
-            lock_cost = min_lock;
-        }
+            let mut lock_cost = last_lock.saturating_mul(mult).saturating_sub(
+                last_lock
+                    .saturating_div(lock_reduction_interval)
+                    .saturating_mul(current_block.saturating_sub(last_lock_block)),
+            );
 
-        log::debug!( "last_lock: {:?}, min_lock: {:?}, last_lock_block: {:?}, lock_reduction_interval: {:?}, current_block: {:?}, mult: {:?} lock_cost: {:?}",
+            if lock_cost < min_lock {
+                lock_cost = min_lock;
+            }
+
+            log::debug!( "last_lock: {:?}, min_lock: {:?}, last_lock_block: {:?}, lock_reduction_interval: {:?}, current_block: {:?}, mult: {:?} lock_cost: {:?}",
         last_lock, min_lock, last_lock_block, lock_reduction_interval, current_block, mult, lock_cost);
 
-        lock_cost
+            lock_cost
+        }
     }
 
     /// This function is used to determine which subnet to prune when the total number of networks has reached the limit.

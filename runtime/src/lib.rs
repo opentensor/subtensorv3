@@ -989,6 +989,16 @@ pub const INITIAL_CHILDKEY_TAKE_RATELIMIT: u64 = 216000; // 30 days at 12 second
 #[cfg(feature = "fast-blocks")]
 pub const INITIAL_CHILDKEY_TAKE_RATELIMIT: u64 = 5;
 
+#[cfg(not(feature = "pow-faucet"))]
+pub const SUBTENSOR_INITIAL_TARGET_REGISTRATIONS_PER_INTERVAL: u16 = 2;
+#[cfg(not(feature = "pow-faucet"))]
+pub const SUBTENSOR_INITIAL_MAX_REGISTRATIONS_PER_BLOCK: u16 = 1;
+
+#[cfg(feature = "pow-faucet")]
+pub const SUBTENSOR_INITIAL_TARGET_REGISTRATIONS_PER_INTERVAL: u16 = 1000;
+
+#[cfg(feature = "pow-faucet")]
+pub const SUBTENSOR_INITIAL_MAX_REGISTRATIONS_PER_BLOCK: u16 = 1000;
 // Configure the pallet subtensor.
 parameter_types! {
     pub const SubtensorInitialRho: u16 = 10;
@@ -1005,10 +1015,10 @@ parameter_types! {
     pub const SubtensorInitialDifficulty: u64 = 10_000_000;
     pub const SubtensorInitialAdjustmentInterval: u16 = 100;
     pub const SubtensorInitialAdjustmentAlpha: u64 = 0; // no weight to previous value.
-    pub const SubtensorInitialTargetRegistrationsPerInterval: u16 = 2;
+    pub const SubtensorInitialTargetRegistrationsPerInterval: u16 = SUBTENSOR_INITIAL_TARGET_REGISTRATIONS_PER_INTERVAL;
     pub const SubtensorInitialImmunityPeriod: u16 = 4096;
     pub const SubtensorInitialActivityCutoff: u16 = 5000;
-    pub const SubtensorInitialMaxRegistrationsPerBlock: u16 = 1;
+    pub const SubtensorInitialMaxRegistrationsPerBlock: u16 = SUBTENSOR_INITIAL_MAX_REGISTRATIONS_PER_BLOCK;
     pub const SubtensorInitialPruningScore : u16 = u16::MAX;
     pub const SubtensorInitialBondsMovingAverage: u64 = 900_000;
     pub const SubtensorInitialDefaultTake: u16 = 11_796; // 18% honest number.

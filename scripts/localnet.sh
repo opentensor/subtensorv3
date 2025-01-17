@@ -15,6 +15,13 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
 # The base directory of the subtensor project
 BASE_DIR="$SCRIPT_DIR/.."
 
+LOG_DIR="$BASE_DIR/logs"
+ALICE_LOG="$LOG_DIR/alice.log"
+BOB_LOG="$LOG_DIR/bob.log"
+
+# Create the log dir if it doesn't exist
+mkdir -p "$LOG_DIR"
+
 # get parameters
 # Get the value of fast_blocks from the first argument
 fast_blocks=${1:-"True"}
@@ -101,8 +108,10 @@ bob_start=(
 
 trap 'pkill -P $$' EXIT SIGINT SIGTERM
 
-(
-  ("${alice_start[@]}" 2>&1) &
-  ("${bob_start[@]}" 2>&1)
-  wait
-)
+# Redirect output to both alice.log and the terminal
+("${alice_start[@]}" 2>&1 | tee -a "$ALICE_LOG") &
+
+# Redirect output to both bob.log and the terminal
+("${bob_start[@]}" 2>&1 | tee -a "$BOB_LOG") &
+
+wait

@@ -3,7 +3,7 @@
 
 use super::*;
 
-pub fn localnet_config(single_authority: bool) -> Result<ChainSpec, String> {
+pub fn e2e_test_config() -> Result<ChainSpec, String> {
     let wasm_binary = WASM_BINARY.ok_or_else(|| "Development wasm not available".to_string())?;
 
     // Give front-ends necessary data to present to users
@@ -29,18 +29,14 @@ pub fn localnet_config(single_authority: bool) -> Result<ChainSpec, String> {
     .with_protocol_id("bittensor")
     .with_id("bittensor")
     .with_chain_type(ChainType::Development)
-    .with_genesis_config_patch(localnet_genesis(
+    .with_genesis_config_patch(e2e_test_genesis(
         // Initial PoA authorities (Validators)
         // aura | grandpa
-        if single_authority {
-            // single authority allows you to run the network using a single node
-            vec![authority_keys_from_seed("Alice")]
-        } else {
-            vec![
-                authority_keys_from_seed("Alice"),
-                authority_keys_from_seed("Bob"),
-            ]
-        },
+        vec![
+            // Keys for debug
+            authority_keys_from_seed("Alice"),
+            authority_keys_from_seed("Bob"),
+        ],
         // Pre-funded accounts
         true,
     ))
@@ -48,7 +44,7 @@ pub fn localnet_config(single_authority: bool) -> Result<ChainSpec, String> {
     .build())
 }
 
-fn localnet_genesis(
+fn e2e_test_genesis(
     initial_authorities: Vec<(AuraId, GrandpaId)>,
     _enable_println: bool,
 ) -> serde_json::Value {
@@ -76,46 +72,6 @@ fn localnet_genesis(
         (
             get_account_id_from_seed::<sr25519::Public>("Ferdie"),
             2000000000000u128,
-        ),
-        (
-            get_account_id_from_seed::<sr25519::Public>("Grace"),
-            1500000000000u128,
-        ),
-        (
-            get_account_id_from_seed::<sr25519::Public>("Tom"),
-            1500000000000u128,
-        ),
-        (
-            get_account_id_from_seed::<sr25519::Public>("Ivy"),
-            1500000000000u128,
-        ),
-        (
-            get_account_id_from_seed::<sr25519::Public>("Judy"),
-            1500000000000u128,
-        ),
-        (
-            get_account_id_from_seed::<sr25519::Public>("Jerry"),
-            1500000000000u128,
-        ),
-        (
-            get_account_id_from_seed::<sr25519::Public>("Harry"),
-            1500000000000u128,
-        ),
-        (
-            get_account_id_from_seed::<sr25519::Public>("Oscar"),
-            1500000000000u128,
-        ),
-        (
-            get_account_id_from_seed::<sr25519::Public>("Trent"),
-            1500000000000u128,
-        ),
-        (
-            get_account_id_from_seed::<sr25519::Public>("Victor"),
-            1500000000000u128,
-        ),
-        (
-            get_account_id_from_seed::<sr25519::Public>("Wendy"),
-            1500000000000u128,
         ),
     ];
 
@@ -159,9 +115,6 @@ fn localnet_genesis(
         },
         "senateMembers": {
             "members": senate_members,
-        },
-        "evmChainId": {
-            "chainId": 42,
         },
     })
 }
