@@ -10,6 +10,9 @@ use pallet_evm_precompile_modexp::Modexp;
 use pallet_evm_precompile_sha3fips::Sha3FIPS256;
 use pallet_evm_precompile_simple::{ECRecover, ECRecoverPublicKey, Identity, Ripemd160, Sha256};
 
+use crate::Runtime;
+use pallet_admin_utils::{PrecompileEnable, PrecompileEnum};
+
 // Include custom precompiles
 mod balance_transfer;
 mod ed25519;
@@ -70,14 +73,52 @@ where
             // Non-Frontier specific nor Ethereum precompiles :
             a if a == hash(1024) => Some(Sha3FIPS256::execute(handle)),
             a if a == hash(1025) => Some(ECRecoverPublicKey::execute(handle)),
-            a if a == hash(EDVERIFY_PRECOMPILE_INDEX) => Some(Ed25519Verify::execute(handle)),
+
+            a if a == hash(EDVERIFY_PRECOMPILE_INDEX) => {
+                if PrecompileEnable::<Runtime>::get(PrecompileEnum::BalanceTransfer) {
+                    Some(Ed25519Verify::execute(handle))
+                } else {
+                    Some(Err(PrecompileFailure::Error {
+                        exit_status: ExitError::Other(
+                            "Precompile Ed25519Verify is disabled".into(),
+                        ),
+                    }))
+                }
+            }
             // Subtensor specific precompiles :
             a if a == hash(BALANCE_TRANSFER_INDEX) => {
-                Some(BalanceTransferPrecompile::execute(handle))
+                if PrecompileEnable::<Runtime>::get(PrecompileEnum::BalanceTransfer) {
+                    Some(BalanceTransferPrecompile::execute(handle))
+                } else {
+                    Some(Err(PrecompileFailure::Error {
+                        exit_status: ExitError::Other(
+                            "Precompile Balance Transfer is disabled".into(),
+                        ),
+                    }))
+                }
             }
-            a if a == hash(STAKING_PRECOMPILE_INDEX) => Some(StakingPrecompile::execute(handle)),
+            a if a == hash(STAKING_PRECOMPILE_INDEX) => {
+                if PrecompileEnable::<Runtime>::get(PrecompileEnum::Staking) {
+                    Some(StakingPrecompile::execute(handle))
+                } else {
+                    Some(Err(PrecompileFailure::Error {
+                        exit_status: ExitError::Other(
+                            "Precompile Balance Transfer is disabled".into(),
+                        ),
+                    }))
+                }
+            }
+
             a if a == hash(METAGRAPH_PRECOMPILE_INDEX) => {
-                Some(MetagraphPrecompile::execute(handle))
+                if PrecompileEnable::<Runtime>::get(PrecompileEnum::Metagraph) {
+                    Some(MetagraphPrecompile::execute(handle))
+                } else {
+                    Some(Err(PrecompileFailure::Error {
+                        exit_status: ExitError::Other(
+                            "Precompile Balance Transfer is disabled".into(),
+                        ),
+                    }))
+                }
             }
 
             _ => None,

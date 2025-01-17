@@ -23,9 +23,9 @@ mod tests;
 #[frame_support::pallet]
 pub mod pallet {
     use super::*;
-    use frame_support::dispatch::DispatchResult;
     use frame_support::pallet_prelude::*;
     use frame_support::traits::tokens::Balance;
+    use frame_support::{dispatch::DispatchResult, pallet_prelude::StorageMap};
     use frame_system::pallet_prelude::*;
     use pallet_evm_chain_id::{self, ChainId};
     use sp_runtime::BoundedVec;
@@ -69,7 +69,16 @@ pub mod pallet {
     }
 
     #[pallet::event]
-    pub enum Event<T: Config> {}
+    #[pallet::generate_deposit(pub(super) fn deposit_event)]
+    pub enum Event<T: Config> {
+        /// Event emitted when a precompile operation is updated.
+        PrecompileUpdated {
+            /// The type of precompile operation being updated.
+            precompile_id: PrecompileEnum,
+            /// Indicates if the precompile operation is enabled or not.
+            enabled: bool,
+        },
+    }
 
     // Errors inform users that something went wrong.
     #[pallet::error]
@@ -81,6 +90,37 @@ pub mod pallet {
         /// The maximum number of subnet validators must be more than the current number of UIDs already in the subnet.
         MaxAllowedUIdsLessThanCurrentUIds,
     }
+    /// Enum for specifying the type of precompile operation.
+    #[derive(Encode, Decode, TypeInfo, Clone, PartialEq, Eq, Debug, Copy)]
+    pub enum PrecompileEnum {
+        /// Enum for balance transfer precompile
+        BalanceTransfer,
+        /// Enum for staking precompile
+        Staking,
+        /// Enum for subnet precompile
+        Subnet,
+        /// Enum for metagraph precompile
+        Metagraph,
+        /// Enum for neuron precompile
+        Neuron,
+    }
+
+    #[pallet::type_value]
+    /// Default value for precompile enable
+    pub fn DefaultPrecompileEnabled<T: Config>() -> bool {
+        true
+    }
+
+    #[pallet::storage]
+    /// Map PrecompileEnum --> enabled
+    pub type PrecompileEnable<T: Config> = StorageMap<
+        _,
+        Blake2_128Concat,
+        PrecompileEnum,
+        bool,
+        ValueQuery,
+        DefaultPrecompileEnabled<T>,
+    >;
 
     /// Dispatchable functions allows users to interact with the pallet and invoke state changes.
     #[pallet::call]
@@ -1261,6 +1301,36 @@ pub mod pallet {
         ) -> DispatchResult {
             ensure_root(origin)?;
             T::Grandpa::schedule_change(next_authorities, in_blocks, forced)
+        }
+
+        /// Toggles the enablement of an EVM precompile.
+        ///
+        /// # Arguments
+        /// * `origin` - The origin of the call, which must be the root account.
+        /// * `precompile_id` - The identifier of the EVM precompile to toggle.
+        /// * `enabled` - The new enablement state of the precompile.
+        ///
+        /// # Errors
+        /// * `BadOrigin` - If the caller is not the root account.
+        ///
+        /// # Weight
+        /// Weight is handled by the `#[pallet::weight]` attribute.
+        #[pallet::call_index(60)]
+        #[pallet::weight((0, DispatchClass::Operational, Pays::No))]
+        pub fn sudo_toggle_evm_precompile(
+            origin: OriginFor<T>,
+            precompile_id: PrecompileEnum,
+            enabled: bool,
+        ) -> DispatchResult {
+            ensure_root(origin)?;
+            if PrecompileEnable::<T>::get(precompile_id) != enabled {
+                PrecompileEnable::<T>::insert(precompile_id, enabled);
+                Self::deposit_event(Event::PrecompileUpdated {
+                    precompile_id,
+                    enabled,
+                });
+            }
+            Ok(())
         }
     }
 }
