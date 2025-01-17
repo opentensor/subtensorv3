@@ -4,6 +4,17 @@ on:
   release:
     types: [published]
   workflow_dispatch:
+    inputs:
+      branch-or-tag:
+        description: "Branch or tag to use for the Docker image tag and ref to checkout (optional)"
+        required: false
+        default: ""
+
+  push:
+    branches:
+      - devnet-ready
+      - devnet
+      - testnet
 
 permissions:
   contents: read
@@ -16,8 +27,18 @@ jobs:
     runs-on: SubtensorCI
 
     steps:
+      - name: Determine Docker tag and ref
+        id: tag
+        run: |
+          branch_or_tag="${{ github.event.inputs.branch-or-tag || github.ref_name }}"
+          echo "Determined branch or tag: $branch_or_tag"
+          echo "tag=$branch_or_tag" >> $GITHUB_ENV
+          echo "ref=$branch_or_tag" >> $GITHUB_ENV
+
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ env.ref }}
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
@@ -32,18 +53,10 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata (tags, labels) for Docker
-        id: meta
-        uses: docker/metadata-action@v4
-        with:
-          images: ghcr.io/${{ github.repository }}
-
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
         with:
           context: .
           push: true
           tags: |
-            ${{ steps.meta.outputs.tags }}
-            ghcr.io/${{ github.repository }}:latest
-          labels: ${{ steps.meta.outputs.labels }}
+            ghcr.io/${{ github.repository }}:${{ env.tag }}
