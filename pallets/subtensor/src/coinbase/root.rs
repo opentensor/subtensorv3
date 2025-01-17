@@ -527,6 +527,7 @@ impl<T: Config> Pallet<T> {
 
         // --- 7. Remove incentive mechanism memory.
         let _ = Uids::<T>::clear_prefix(netuid, u32::MAX, None);
+        let keys = Keys::<T>::iter_prefix(netuid).collect::<Vec<_>>();
         let _ = Keys::<T>::clear_prefix(netuid, u32::MAX, None);
         let _ = Bonds::<T>::clear_prefix(netuid, u32::MAX, None);
 
@@ -563,6 +564,10 @@ impl<T: Config> Pallet<T> {
         LastUpdate::<T>::remove(netuid);
         ValidatorPermit::<T>::remove(netuid);
         ValidatorTrust::<T>::remove(netuid);
+
+        for (_uid, key) in keys {
+            IsNetworkMember::<T>::remove(key, netuid);
+        }
 
         // --- 11. Erase network parameters.
         Tempo::<T>::remove(netuid);
