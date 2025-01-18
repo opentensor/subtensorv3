@@ -124,6 +124,9 @@ impl<T: Config> Pallet<T> {
             EmissionValues::<T>::insert(*netuid, tao_in);
         }
 
+        // == We'll save the owner cuts for each subnet.
+        let mut owner_cuts: BTreeMap<u16, u64> = BTreeMap::new();
+
         // --- 4. Distribute subnet emission into subnets based on mechanism type.
         for netuid in subnets.iter() {
             // Do not emit into root network.
@@ -189,12 +192,27 @@ impl<T: Config> Pallet<T> {
                 log::debug!("Increased TotalIssuance: {:?}", *total);
             });
 
+            // Calculate the owner cut.
+            let owner_cut: u64 = I96F32::from_num(alpha_out_emission)
+                .saturating_mul(Self::get_float_subnet_owner_cut())
+                .to_num::<u64>();
+            log::debug!("Owner cut for netuid {:?}: {:?}", netuid, owner_cut);
+            // Store the owner cut for this subnet.
+            *owner_cuts.entry(*netuid).or_insert(0) = owner_cut;
+
+            let remaining_emission: u64 = alpha_out_emission.saturating_sub(owner_cut);
+            log::debug!(
+                "Remaining emission for netuid {:?}: {:?}",
+                netuid,
+                remaining_emission
+            );
+
             // Get proportion of alpha out emission as root divs.
             let root_emission_in_alpha: I96F32 =
-                Self::get_root_divs_in_alpha(*netuid, I96F32::from_num(alpha_out_emission));
+                Self::get_root_divs_in_alpha(*netuid, I96F32::from_num(remaining_emission));
             // Subtract root divs from alpha divs.
             let pending_alpha_emission: I96F32 =
-                I96F32::from_num(alpha_out_emission).saturating_sub(root_emission_in_alpha);
+                I96F32::from_num(remaining_emission).saturating_sub(root_emission_in_alpha);
             // Sell root emission through the pool.
             let root_emission_in_tao: u64 =
                 Self::swap_alpha_for_tao(*netuid, root_emission_in_alpha.to_num::<u64>());
@@ -225,12 +243,24 @@ impl<T: Config> Pallet<T> {
                 BlocksSinceLastStep::<T>::insert(netuid, 0);
                 LastMechansimStepBlock::<T>::insert(netuid, current_block);
 
-                // 5.2 Get and drain the subnet pending emission.
+                // 5.2.1 Get and drain the subnet pending emission.
                 let pending_emission: u64 = PendingEmission::<T>::get(netuid);
                 PendingEmission::<T>::insert(netuid, 0);
 
-                // Drain pending root divs and alpha emission.
-                Self::drain_pending_emission(netuid, pending_emission);
+                // 5.2.2 Get and drain the subnet pending root divs.
+                let pending_root_divs: u64 = PendingRootDivs::<T>::get(netuid);
+                PendingRootDivs::<T>::insert(netuid, 0);
+
+                // 5.2.3 Get owner cut.
+                let owner_cut: u64 = *owner_cuts.get(&netuid).unwrap_or(&0);
+
+                // 5.2.4 Drain pending root divs, alpha emission, and owner cut.
+                Self::drain_pending_emission(
+                    netuid,
+                    pending_emission,
+                    pending_root_divs,
+                    owner_cut,
+                );
             } else {
                 // Increment
                 BlocksSinceLastStep::<T>::mutate(netuid, |total| *total = total.saturating_add(1));
@@ -238,31 +268,23 @@ impl<T: Config> Pallet<T> {
         }
     }
 
-    pub fn drain_pending_emission(netuid: u16, pending_emission: u64) {
-        let alpha_out: u64 = pending_emission;
-
+    pub fn drain_pending_emission(
+        netuid: u16,
+        pending_alpha_emission: u64,
+        pending_root_divs: u64,
+        owner_cut: u64,
+    ) {
         log::debug!(
-            "Draining pending emission for netuid {:?}: {:?}",
+            "Draining pending alpha emission for netuid {:?}: {:?}, with pending root divs {:?}, and owner cut {:?}",
             netuid,
-            alpha_out
-        );
-
-        // Calculate the 18% owner cut.
-        let owner_cut: u64 = I96F32::from_num(alpha_out)
-            .saturating_mul(Self::get_float_subnet_owner_cut())
-            .to_num::<u64>();
-        log::debug!("Owner cut for netuid {:?}: {:?}", netuid, owner_cut);
-
-        let remaining_emission: u64 = alpha_out.saturating_sub(owner_cut);
-        log::debug!(
-            "Remaining emission for netuid {:?}: {:?}",
-            netuid,
-            remaining_emission
+            pending_alpha_emission,
+            pending_root_divs,
+            owner_cut
         );
 
         // Run the epoch() --> hotkey emission.
         let hotkey_emission: Vec<(T::AccountId, u64, u64)> =
-            Self::epoch(netuid, remaining_emission);
+            Self::epoch(netuid, pending_alpha_emission);
         log::debug!(
             "Hotkey emission for netuid {:?}: {:?}",
             netuid,
@@ -463,14 +485,13 @@ impl<T: Config> Pallet<T> {
 
         // For all the root-alpha divs give this proportion of the swapped tao to the root participants.
         let _ = TaoDividendsPerSubnet::<T>::clear_prefix(netuid, u32::MAX, None);
-        let total_root_divs_to_distribute = PendingRootDivs::<T>::get(netuid);
-        PendingRootDivs::<T>::insert(netuid, 0);
+
         for (hotkey_j, root_divs) in root_alpha_divs.iter() {
             let proportion: I96F32 = I96F32::from_num(*root_divs)
                 .checked_div(I96F32::from_num(total_root_alpha_divs))
                 .unwrap_or(I96F32::from_num(0));
             let root_divs_to_pay: u64 = proportion
-                .saturating_mul(I96F32::from_num(total_root_divs_to_distribute))
+                .saturating_mul(I96F32::from_num(pending_root_divs))
                 .to_num::<u64>();
             log::debug!(
                 "Proportion for hotkey {:?}: {:?}, root_divs_to_pay: {:?}",
