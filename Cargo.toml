@@ -24,18 +24,19 @@ rayon = "1.10"
 [workspace]
 members = [
     "node",
-    "pallets/commitments",
-    "pallets/subtensor",
     "pallets/admin-utils",
     "pallets/collective",
+    "pallets/commitments",
+    "pallets/drand",
+    "pallets/fee-handler",
     "pallets/registry",
+    "pallets/subtensor",
     "primitives/*",
     "runtime",
-    "support/tools",
-    "support/macros",
     "support/linting",
+    "support/macros",
     "support/procedural-fork",
-    "pallets/drand",
+    "support/tools",
 ]
 exclude = ["support/procedural-fork"]
 resolver = "2"

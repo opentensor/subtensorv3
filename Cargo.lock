@@ -5552,7 +5552,7 @@ dependencies = [
  "num-traits",
  "pallet-commitments",
  "pallet-drand",
- "pallet-transaction-payment",
+ "pallet-transaction-payment 38.0.0 (git+https://github.com/paritytech/polkadot-sdk.git?tag=polkadot-stable2409)",
  "pallet-transaction-payment-rpc",
  "pallet-transaction-payment-rpc-runtime-api",
  "parity-scale-codec",
@@ -5654,7 +5654,7 @@ dependencies = [
  "pallet-subtensor",
  "pallet-sudo",
  "pallet-timestamp",
- "pallet-transaction-payment",
+ "pallet-transaction-payment 38.0.0 (git+https://github.com/paritytech/polkadot-sdk.git?tag=polkadot-stable2409)",
  "pallet-transaction-payment-rpc-runtime-api",
  "pallet-utility",
  "parity-scale-codec",
@@ -6443,7 +6443,7 @@ dependencies = [
  "pallet-membership",
  "pallet-preimage",
  "pallet-scheduler",
- "pallet-transaction-payment",
+ "pallet-transaction-payment 38.0.0 (git+https://github.com/paritytech/polkadot-sdk.git?tag=polkadot-stable2409)",
  "pallet-utility",
  "parity-scale-codec",
  "parity-util-mem",
@@ -6506,6 +6506,24 @@ dependencies = [
 [[package]]
 name = "pallet-transaction-payment"
 version = "38.0.0"
+dependencies = [
+ "frame-support",
+ "frame-system",
+ "pallet-balances",
+ "pallet-subtensor",
+ "pallet-transaction-payment 38.0.0 (git+https://github.com/paritytech/polkadot-sdk.git?tag=polkadot-stable2409)",
+ "parity-scale-codec",
+ "scale-info",
+ "serde",
+ "serde_json",
+ "sp-core",
+ "sp-io",
+ "sp-runtime",
+]
+
+[[package]]
+name = "pallet-transaction-payment"
+version = "38.0.0"
 source = "git+https://github.com/paritytech/polkadot-sdk.git?tag=polkadot-stable2409#87971b3e92721bdf10bf40b410eaae779d494ca0"
 dependencies = [
  "frame-support",
@@ -6539,7 +6557,7 @@ name = "pallet-transaction-payment-rpc-runtime-api"
 version = "38.0.0"
 source = "git+https://github.com/paritytech/polkadot-sdk.git?tag=polkadot-stable2409#87971b3e92721bdf10bf40b410eaae779d494ca0"
 dependencies = [
- "pallet-transaction-payment",
+ "pallet-transaction-payment 38.0.0 (git+https://github.com/paritytech/polkadot-sdk.git?tag=polkadot-stable2409)",
  "parity-scale-codec",
  "sp-api",
  "sp-runtime",
