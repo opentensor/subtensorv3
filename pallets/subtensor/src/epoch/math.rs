@@ -1022,6 +1022,90 @@ pub fn weighted_median_col_sparse(
     median
 }
 
+// Element-wise interpolation of two matrices: Result = A + ratio * (B - A).
+// ratio has intended range [0, 1]
+// ratio=0: Result = A
+// ratio=1: Result = B
+#[allow(dead_code)]
+pub fn interpolate(mat1: &[Vec<I32F32>], mat2: &[Vec<I32F32>], ratio: I32F32) -> Vec<Vec<I32F32>> {
+    if ratio == I32F32::from_num(0) {
+        return mat1.to_owned();
+    }
+    if ratio == I32F32::from_num(1) {
+        return mat2.to_owned();
+    }
+    assert!(mat1.len() == mat2.len());
+    if mat1.is_empty() {
+        return vec![vec![]; 1];
+    }
+    if mat1.first().unwrap_or(&vec![]).is_empty() {
+        return vec![vec![]; 1];
+    }
+    let mut result: Vec<Vec<I32F32>> =
+        vec![vec![I32F32::from_num(0); mat1.first().unwrap_or(&vec![]).len()]; mat1.len()];
+    for (i, (row1, row2)) in mat1.iter().zip(mat2.iter()).enumerate() {
+        assert!(row1.len() == row2.len());
+        for (j, (&v1, &v2)) in row1.iter().zip(row2.iter()).enumerate() {
+            if let Some(res) = result.get_mut(i).unwrap_or(&mut vec![]).get_mut(j) {
+                *res = v1.saturating_add(ratio.saturating_mul(v2.saturating_sub(v1)));
+            }
+        }
+    }
+    result
+}
+
+// Element-wise interpolation of two sparse matrices: Result = A + ratio * (B - A).
+// ratio has intended range [0, 1]
+// ratio=0: Result = A
+// ratio=1: Result = B
+#[allow(dead_code)]
+pub fn interpolate_sparse(
+    mat1: &[Vec<(u16, I32F32)>],
+    mat2: &[Vec<(u16, I32F32)>],
+    columns: u16,
+    ratio: I32F32,
+) -> Vec<Vec<(u16, I32F32)>> {
+    if ratio == I32F32::from_num(0) {
+        return mat1.to_owned();
+    }
+    if ratio == I32F32::from_num(1) {
+        return mat2.to_owned();
+    }
+    assert!(mat1.len() == mat2.len());
+    let rows = mat1.len();
+    let zero: I32F32 = I32F32::from_num(0);
+    let mut result: Vec<Vec<(u16, I32F32)>> = vec![vec![]; rows];
+    for i in 0..rows {
+        let mut row1: Vec<I32F32> = vec![zero; columns as usize];
+        if let Some(row) = mat1.get(i) {
+            for (j, value) in row {
+                if let Some(entry) = row1.get_mut(*j as usize) {
+                    *entry = *value;
+                }
+            }
+        }
+        let mut row2: Vec<I32F32> = vec![zero; columns as usize];
+        if let Some(row) = mat2.get(i) {
+            for (j, value) in row {
+                if let Some(entry) = row2.get_mut(*j as usize) {
+                    *entry = *value;
+                }
+            }
+        }
+        for j in 0..columns as usize {
+            let v1 = row1.get(j).unwrap_or(&zero);
+            let v2 = row2.get(j).unwrap_or(&zero);
+            let interp = v1.saturating_add(ratio.saturating_mul(v2.saturating_sub(*v1)));
+            if zero < interp {
+                if let Some(res) = result.get_mut(i) {
+                    res.push((j as u16, interp));
+                }
+            }
+        }
+    }
+    result
+}
+
 // Element-wise product of two matrices.
 #[allow(dead_code)]
 pub fn hadamard(mat1: &[Vec<I32F32>], mat2: &[Vec<I32F32>]) -> Vec<Vec<I32F32>> {

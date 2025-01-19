@@ -742,6 +742,39 @@ fn test_sudo_set_bonds_moving_average() {
 }
 
 #[test]
+fn test_sudo_set_bonds_penalty() {
+    new_test_ext().execute_with(|| {
+        let netuid: u16 = 1;
+        let to_be_set: u16 = 10;
+        add_network(netuid, 10);
+        let init_value: u16 = SubtensorModule::get_bonds_penalty(netuid);
+        assert_eq!(
+            AdminUtils::sudo_set_bonds_penalty(
+                <<Test as Config>::RuntimeOrigin>::signed(U256::from(1)),
+                netuid,
+                to_be_set
+            ),
+            Err(DispatchError::BadOrigin)
+        );
+        assert_eq!(
+            AdminUtils::sudo_set_bonds_penalty(
+                <<Test as Config>::RuntimeOrigin>::root(),
+                netuid + 1,
+                to_be_set
+            ),
+            Err(Error::<Test>::SubnetDoesNotExist.into())
+        );
+        assert_eq!(SubtensorModule::get_bonds_penalty(netuid), init_value);
+        assert_ok!(AdminUtils::sudo_set_bonds_penalty(
+            <<Test as Config>::RuntimeOrigin>::root(),
+            netuid,
+            to_be_set
+        ));
+        assert_eq!(SubtensorModule::get_bonds_penalty(netuid), to_be_set);
+    });
+}
+
+#[test]
 fn test_sudo_set_rao_recycled() {
     new_test_ext().execute_with(|| {
         let netuid: u16 = 1;

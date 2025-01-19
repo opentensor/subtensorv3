@@ -57,6 +57,8 @@ mod events {
         ImmunityPeriodSet(u16, u16),
         /// bonds moving average is set for a subnet.
         BondsMovingAverageSet(u16, u64),
+        /// bonds penalty is set for a subnet.
+        BondsPenaltySet(u16, u16),
         /// setting the max number of allowed validators on a subnet.
         MaxAllowedValidatorsSet(u16, u16),
         /// the axon server information is added to the network.

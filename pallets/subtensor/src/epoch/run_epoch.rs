@@ -137,18 +137,22 @@ impl<T: Config> Pallet<T> {
         // Compute preranks: r_j = SUM(i) w_ij * s_i
         let preranks: Vec<I32F32> = matmul(&weights, &active_stake);
 
-        // Clip weights at majority consensus
-        let kappa: I32F32 = Self::get_float_kappa(netuid); // consensus majority ratio, e.g. 51%.
+        // Consensus majority ratio, e.g. 51%.
+        let kappa: I32F32 = Self::get_float_kappa(netuid);
+        // Calculate consensus as stake-weighted median of weights.
         let consensus: Vec<I32F32> = weighted_median_col(&active_stake, &weights, kappa);
-        inplace_col_clip(&mut weights, &consensus);
-        let validator_trust: Vec<I32F32> = row_sum(&weights);
+        // Clip weights at majority consensus.
+        let mut clipped_weights: Vec<Vec<I32F32>> = weights.clone();
+        inplace_col_clip(&mut clipped_weights, &consensus);
+        // Calculate validator trust as sum of clipped weights set by validator.
+        let validator_trust: Vec<I32F32> = row_sum(&clipped_weights);
 
         // ====================================
         // == Ranks, Server Trust, Incentive ==
         // ====================================
 
         // Compute ranks: r_j = SUM(i) w_ij * s_i
-        let mut ranks: Vec<I32F32> = matmul(&weights, &active_stake);
+        let mut ranks: Vec<I32F32> = matmul(&clipped_weights, &active_stake);
 
         // Compute server trust: ratio of rank after vs. rank before.
         let trust: Vec<I32F32> = vecdiv(&ranks, &preranks);
@@ -161,6 +165,14 @@ impl<T: Config> Pallet<T> {
         // == Bonds and Dividends ==
         // =========================
 
+        // Get validator bonds penalty in [0, 1].
+        let bonds_penalty: I32F32 = Self::get_float_bonds_penalty(netuid);
+        // Calculate weights for bonds, apply bonds penalty to weights.
+        // bonds_penalty = 0: weights_for_bonds = weights.clone()
+        // bonds_penalty = 1: weights_for_bonds = clipped_weights.clone()
+        let weights_for_bonds: Vec<Vec<I32F32>> =
+            interpolate(&weights, &clipped_weights, bonds_penalty);
+
         // Access network bonds.
         let mut bonds: Vec<Vec<I32F32>> = Self::get_bonds(netuid);
         inplace_mask_matrix(&outdated, &mut bonds); // mask outdated bonds
@@ -168,7 +180,7 @@ impl<T: Config> Pallet<T> {
         log::trace!("B:\n{:?}\n", &bonds);
 
         // Compute bonds delta column normalized.
-        let mut bonds_delta: Vec<Vec<I32F32>> = row_hadamard(&weights, &active_stake); // ΔB = W◦S
+        let mut bonds_delta: Vec<Vec<I32F32>> = row_hadamard(&weights_for_bonds, &active_stake); // ΔB = W◦S
         inplace_col_normalize(&mut bonds_delta); // sum_i b_ij = 1
         log::trace!("ΔB:\n{:?}\n", &bonds_delta);
         // Compute the Exponential Moving Average (EMA) of bonds.
@@ -474,15 +486,18 @@ impl<T: Config> Pallet<T> {
         let preranks: Vec<I32F32> = matmul_sparse(&weights, &active_stake, n);
         log::trace!("Ranks (before): {:?}", &preranks);
 
-        // Clip weights at majority consensus
-        let kappa: I32F32 = Self::get_float_kappa(netuid); // consensus majority ratio, e.g. 51%.
+        // Consensus majority ratio, e.g. 51%.
+        let kappa: I32F32 = Self::get_float_kappa(netuid);
+        // Calculate consensus as stake-weighted median of weights.
         let consensus: Vec<I32F32> = weighted_median_col_sparse(&active_stake, &weights, n, kappa);
         log::trace!("Consensus: {:?}", &consensus);
 
-        weights = col_clip_sparse(&weights, &consensus);
-        log::trace!("Weights: {:?}", &weights);
+        // Clip weights at majority consensus.
+        let clipped_weights: Vec<Vec<(u16, I32F32)>> = col_clip_sparse(&weights, &consensus);
+        log::trace!("Clipped Weights: {:?}", &clipped_weights);
 
-        let validator_trust: Vec<I32F32> = row_sum_sparse(&weights);
+        // Calculate validator trust as sum of clipped weights set by validator.
+        let validator_trust: Vec<I32F32> = row_sum_sparse(&clipped_weights);
         log::trace!("Validator Trust: {:?}", &validator_trust);
 
         // =============================
@@ -490,7 +505,7 @@ impl<T: Config> Pallet<T> {
         // =============================
 
         // Compute ranks: r_j = SUM(i) w_ij * s_i.
-        let mut ranks: Vec<I32F32> = matmul_sparse(&weights, &active_stake, n);
+        let mut ranks: Vec<I32F32> = matmul_sparse(&clipped_weights, &active_stake, n);
         log::trace!("Ranks (after): {:?}", &ranks);
 
         // Compute server trust: ratio of rank after vs. rank before.
@@ -504,6 +519,14 @@ impl<T: Config> Pallet<T> {
         // =========================
         // == Bonds and Dividends ==
         // =========================
+
+        // Get validator bonds penalty in [0, 1].
+        let bonds_penalty: I32F32 = Self::get_float_bonds_penalty(netuid);
+        // Calculate weights for bonds, apply bonds penalty to weights.
+        // bonds_penalty = 0: weights_for_bonds = weights.clone()
+        // bonds_penalty = 1: weights_for_bonds = clipped_weights.clone()
+        let weights_for_bonds: Vec<Vec<(u16, I32F32)>> =
+            interpolate_sparse(&weights, &clipped_weights, n, bonds_penalty);
 
         // Access network bonds.
         let mut bonds: Vec<Vec<(u16, I32F32)>> = Self::get_bonds_sparse(netuid);
@@ -523,7 +546,8 @@ impl<T: Config> Pallet<T> {
         log::trace!("B (mask+norm): {:?}", &bonds);
 
         // Compute bonds delta column normalized.
-        let mut bonds_delta: Vec<Vec<(u16, I32F32)>> = row_hadamard_sparse(&weights, &active_stake); // ΔB = W◦S (outdated W masked)
+        let mut bonds_delta: Vec<Vec<(u16, I32F32)>> =
+            row_hadamard_sparse(&weights_for_bonds, &active_stake); // ΔB = W◦S (outdated W masked)
         log::trace!("ΔB: {:?}", &bonds_delta);
 
         // Normalize bonds delta.
@@ -712,6 +736,9 @@ impl<T: Config> Pallet<T> {
     }
     pub fn get_float_kappa(netuid: u16) -> I32F32 {
         I32F32::from_num(Self::get_kappa(netuid)).saturating_div(I32F32::from_num(u16::MAX))
+    }
+    pub fn get_float_bonds_penalty(netuid: u16) -> I32F32 {
+        I32F32::from_num(Self::get_bonds_penalty(netuid)).saturating_div(I32F32::from_num(u16::MAX))
     }
 
     pub fn get_block_at_registration(netuid: u16) -> Vec<u64> {

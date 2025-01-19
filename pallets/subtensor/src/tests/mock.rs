@@ -138,6 +138,7 @@ parameter_types! {
     pub const InitialImmunityPeriod: u16 = 2;
     pub const InitialMaxAllowedUids: u16 = 2;
     pub const InitialBondsMovingAverage: u64 = 900_000;
+    pub const InitialBondsPenalty:u16 = 0;
     pub const InitialStakePruningMin: u16 = 0;
     pub const InitialFoundationDistribution: u64 = 0;
     pub const InitialDefaultDelegateTake: u16 = 11_796; // 18%, same as in production
@@ -373,6 +374,7 @@ impl crate::Config for Test {
     type InitialMaxRegistrationsPerBlock = InitialMaxRegistrationsPerBlock;
     type InitialPruningScore = InitialPruningScore;
     type InitialBondsMovingAverage = InitialBondsMovingAverage;
+    type InitialBondsPenalty = InitialBondsPenalty;
     type InitialMaxAllowedValidators = InitialMaxAllowedValidators;
     type InitialDefaultDelegateTake = InitialDefaultDelegateTake;
     type InitialMinDelegateTake = InitialMinDelegateTake;

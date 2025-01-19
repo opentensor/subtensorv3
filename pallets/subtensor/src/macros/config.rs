@@ -93,6 +93,9 @@ mod config {
         /// Initial bonds moving average.
         #[pallet::constant]
         type InitialBondsMovingAverage: Get<u64>;
+        /// Initial bonds penalty.
+        #[pallet::constant]
+        type InitialBondsPenalty: Get<u16>;
         /// Initial target registrations per interval.
         #[pallet::constant]
         type InitialTargetRegistrationsPerInterval: Get<u16>;

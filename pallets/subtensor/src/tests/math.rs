@@ -1717,6 +1717,240 @@ fn test_math_weighted_median_col_sparse() {
 }
 
 #[test]
+fn test_math_interpolate() {
+    let mat1: Vec<Vec<I32F32>> = vec![vec![]];
+    let mat2: Vec<Vec<I32F32>> = vec![vec![]];
+    let target: Vec<Vec<I32F32>> = vec![vec![]];
+    let ratio = I32F32::from_num(0);
+    let result = interpolate(&mat1, &mat2, ratio);
+    assert_mat_compare(&result, &target, I32F32::from_num(0));
+
+    let mat1: Vec<Vec<I32F32>> = vec![vec![I32F32::from_num(0)]];
+    let mat2: Vec<Vec<I32F32>> = vec![vec![I32F32::from_num(1)]];
+    let target: Vec<Vec<I32F32>> = vec![vec![I32F32::from_num(0)]];
+    let ratio = I32F32::from_num(0);
+    let result = interpolate(&mat1, &mat2, ratio);
+    assert_mat_compare(&result, &target, I32F32::from_num(0));
+
+    let target: Vec<Vec<I32F32>> = vec![vec![I32F32::from_num(1)]];
+    let ratio = I32F32::from_num(1);
+    let result = interpolate(&mat1, &mat2, ratio);
+    assert_mat_compare(&result, &target, I32F32::from_num(0));
+
+    let mat1: Vec<f32> = vec![0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.];
+    let mat2: Vec<f32> = vec![0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.];
+    let target: Vec<f32> = vec![0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.];
+    let mat1 = vec_to_mat_fixed(&mat1, 4, false);
+    let mat2 = vec_to_mat_fixed(&mat2, 4, false);
+    let ratio = I32F32::from_num(0);
+    let target = vec_to_mat_fixed(&target, 4, false);
+    let result = interpolate(&mat1, &mat2, ratio);
+    assert_mat_compare(&result, &target, I32F32::from_num(0));
+
+    let ratio = I32F32::from_num(1);
+    let result = interpolate(&mat1, &mat2, ratio);
+    assert_mat_compare(&result, &target, I32F32::from_num(0));
+
+    let mat1: Vec<f32> = vec![1., 10., 100., 1000., 10000., 100000.];
+    let mat2: Vec<f32> = vec![10., 100., 1000., 10000., 100000., 1000000.];
+    let target: Vec<f32> = vec![1., 10., 100., 1000., 10000., 100000.];
+    let mat1 = vec_to_mat_fixed(&mat1, 3, false);
+    let mat2 = vec_to_mat_fixed(&mat2, 3, false);
+    let ratio = I32F32::from_num(0);
+    let target = vec_to_mat_fixed(&target, 3, false);
+    let result = interpolate(&mat1, &mat2, ratio);
+    assert_mat_compare(&result, &target, I32F32::from_num(0));
+
+    let target: Vec<f32> = vec![9.1, 91., 910., 9100., 91000., 910000.];
+    let ratio = I32F32::from_num(0.9);
+    let target = vec_to_mat_fixed(&target, 3, false);
+    let result = interpolate(&mat1, &mat2, ratio);
+    assert_mat_compare(&result, &target, I32F32::from_num(0.0001));
+
+    let mat1: Vec<f32> = vec![0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.];
+    let mat2: Vec<f32> = vec![1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.];
+    let target: Vec<f32> = vec![0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.];
+    let mat1 = vec_to_mat_fixed(&mat1, 4, false);
+    let mat2 = vec_to_mat_fixed(&mat2, 4, false);
+    let ratio = I32F32::from_num(0);
+    let target = vec_to_mat_fixed(&target, 4, false);
+    let result = interpolate(&mat1, &mat2, ratio);
+    assert_mat_compare(&result, &target, I32F32::from_num(0));
+
+    let target: Vec<f32> = vec![
+        0.000000001,
+        0.000000001,
+        0.000000001,
+        0.000000001,
+        0.000000001,
+        0.000000001,
+        0.000000001,
+        0.000000001,
+        0.000000001,
+        0.000000001,
+        0.000000001,
+        0.000000001,
+    ];
+    let ratio = I32F32::from_num(0.000000001);
+    let target = vec_to_mat_fixed(&target, 4, false);
+    let result = interpolate(&mat1, &mat2, ratio);
+    assert_mat_compare(&result, &target, I32F32::from_num(0));
+
+    let target: Vec<f32> = vec![0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5];
+    let ratio = I32F32::from_num(0.5);
+    let target = vec_to_mat_fixed(&target, 4, false);
+    let result = interpolate(&mat1, &mat2, ratio);
+    assert_mat_compare(&result, &target, I32F32::from_num(0));
+
+    let target: Vec<f32> = vec![
+        0.9999998808,
+        0.9999998808,
+        0.9999998808,
+        0.9999998808,
+        0.9999998808,
+        0.9999998808,
+        0.9999998808,
+        0.9999998808,
+        0.9999998808,
+        0.9999998808,
+        0.9999998808,
+        0.9999998808,
+    ];
+    let ratio = I32F32::from_num(0.9999998808);
+    let target = vec_to_mat_fixed(&target, 4, false);
+    let result = interpolate(&mat1, &mat2, ratio);
+    assert_mat_compare(&result, &target, I32F32::from_num(0));
+
+    let target: Vec<f32> = vec![1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.];
+    let ratio = I32F32::from_num(1);
+    let target = vec_to_mat_fixed(&target, 4, false);
+    let result = interpolate(&mat1, &mat2, ratio);
+    assert_mat_compare(&result, &target, I32F32::from_num(0));
+}
+
+#[test]
+fn test_math_interpolate_sparse() {
+    let mat1: Vec<Vec<(u16, I32F32)>> = vec![vec![]];
+    let mat2: Vec<Vec<(u16, I32F32)>> = vec![vec![]];
+    let target: Vec<Vec<(u16, I32F32)>> = vec![vec![]];
+    let ratio = I32F32::from_num(0);
+    let result = interpolate_sparse(&mat1, &mat2, 0, ratio);
+    assert_sparse_mat_compare(&result, &target, I32F32::from_num(0));
+
+    let mat1: Vec<f32> = vec![0.];
+    let mat2: Vec<f32> = vec![1.];
+    let target: Vec<f32> = vec![0.];
+    let mat1 = vec_to_sparse_mat_fixed(&mat1, 1, false);
+    let mat2 = vec_to_sparse_mat_fixed(&mat2, 1, false);
+    let ratio = I32F32::from_num(0);
+    let target = vec_to_sparse_mat_fixed(&target, 1, false);
+    let result = interpolate_sparse(&mat1, &mat2, 1, ratio);
+    assert_sparse_mat_compare(&result, &target, I32F32::from_num(0));
+
+    let target: Vec<f32> = vec![0.5];
+    let ratio = I32F32::from_num(0.5);
+    let target = vec_to_sparse_mat_fixed(&target, 1, false);
+    let result = interpolate_sparse(&mat1, &mat2, 1, ratio);
+    assert_sparse_mat_compare(&result, &target, I32F32::from_num(0));
+
+    let target: Vec<f32> = vec![1.];
+    let ratio = I32F32::from_num(1);
+    let target = vec_to_sparse_mat_fixed(&target, 1, false);
+    let result = interpolate_sparse(&mat1, &mat2, 1, ratio);
+    assert_sparse_mat_compare(&result, &target, I32F32::from_num(0));
+
+    let mat1: Vec<f32> = vec![0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.];
+    let mat2: Vec<f32> = vec![0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.];
+    let target: Vec<f32> = vec![0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.];
+    let mat1 = vec_to_sparse_mat_fixed(&mat1, 4, false);
+    let mat2 = vec_to_sparse_mat_fixed(&mat2, 4, false);
+    let ratio = I32F32::from_num(0);
+    let target = vec_to_sparse_mat_fixed(&target, 4, false);
+    let result = interpolate_sparse(&mat1, &mat2, 3, ratio);
+    assert_sparse_mat_compare(&result, &target, I32F32::from_num(0));
+
+    let ratio = I32F32::from_num(1);
+    let result = interpolate_sparse(&mat1, &mat2, 3, ratio);
+    assert_sparse_mat_compare(&result, &target, I32F32::from_num(0));
+
+    let mat1: Vec<f32> = vec![1., 0., 100., 1000., 10000., 100000.];
+    let mat2: Vec<f32> = vec![10., 100., 1000., 10000., 100000., 0.];
+    let target: Vec<f32> = vec![1., 0., 100., 1000., 10000., 100000.];
+    let mat1 = vec_to_sparse_mat_fixed(&mat1, 3, false);
+    let mat2 = vec_to_sparse_mat_fixed(&mat2, 3, false);
+    let ratio = I32F32::from_num(0);
+    let target = vec_to_sparse_mat_fixed(&target, 3, false);
+    let result = interpolate_sparse(&mat1, &mat2, 2, ratio);
+    assert_sparse_mat_compare(&result, &target, I32F32::from_num(0));
+
+    let target: Vec<f32> = vec![9.1, 90., 910., 9100., 91000., 10000.];
+    let ratio = I32F32::from_num(0.9);
+    let target = vec_to_sparse_mat_fixed(&target, 3, false);
+    let result = interpolate_sparse(&mat1, &mat2, 2, ratio);
+    assert_sparse_mat_compare(&result, &target, I32F32::from_num(0.0001));
+
+    let mat1: Vec<f32> = vec![0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.];
+    let mat2: Vec<f32> = vec![1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.];
+    let target: Vec<f32> = vec![0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.];
+    let mat1 = vec_to_sparse_mat_fixed(&mat1, 4, false);
+    let mat2 = vec_to_sparse_mat_fixed(&mat2, 4, false);
+    let ratio = I32F32::from_num(0);
+    let target = vec_to_sparse_mat_fixed(&target, 4, false);
+    let result = interpolate_sparse(&mat1, &mat2, 3, ratio);
+    assert_sparse_mat_compare(&result, &target, I32F32::from_num(0));
+
+    let target: Vec<f32> = vec![
+        0.000000001,
+        0.000000001,
+        0.000000001,
+        0.000000001,
+        0.000000001,
+        0.000000001,
+        0.000000001,
+        0.000000001,
+        0.000000001,
+        0.000000001,
+        0.000000001,
+        0.000000001,
+    ];
+    let ratio = I32F32::from_num(0.000000001);
+    let target = vec_to_sparse_mat_fixed(&target, 4, false);
+    let result = interpolate_sparse(&mat1, &mat2, 3, ratio);
+    assert_sparse_mat_compare(&result, &target, I32F32::from_num(0));
+
+    let target: Vec<f32> = vec![0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5];
+    let ratio = I32F32::from_num(0.5);
+    let target = vec_to_sparse_mat_fixed(&target, 4, false);
+    let result = interpolate_sparse(&mat1, &mat2, 3, ratio);
+    assert_sparse_mat_compare(&result, &target, I32F32::from_num(0));
+
+    let target: Vec<f32> = vec![
+        0.9999998808,
+        0.9999998808,
+        0.9999998808,
+        0.9999998808,
+        0.9999998808,
+        0.9999998808,
+        0.9999998808,
+        0.9999998808,
+        0.9999998808,
+        0.9999998808,
+        0.9999998808,
+        0.9999998808,
+    ];
+    let ratio = I32F32::from_num(0.9999998808);
+    let target = vec_to_sparse_mat_fixed(&target, 4, false);
+    let result = interpolate_sparse(&mat1, &mat2, 3, ratio);
+    assert_sparse_mat_compare(&result, &target, I32F32::from_num(0));
+
+    let target: Vec<f32> = vec![1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.];
+    let ratio = I32F32::from_num(1);
+    let target = vec_to_sparse_mat_fixed(&target, 4, false);
+    let result = interpolate_sparse(&mat1, &mat2, 3, ratio);
+    assert_sparse_mat_compare(&result, &target, I32F32::from_num(0));
+}
+
+#[test]
 fn test_math_hadamard() {
     let mat2: Vec<f32> = vec![1., 2., 3., 4., 5., 6., 7., 8., 9., 10., 11., 12.];
     let mat1: Vec<f32> = vec![

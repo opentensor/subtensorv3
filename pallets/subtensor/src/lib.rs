@@ -568,6 +568,11 @@ pub mod pallet {
     pub fn DefaultBondsMovingAverage<T: Config>() -> u64 {
         T::InitialBondsMovingAverage::get()
     }
+    /// Default bonds penalty.
+    #[pallet::type_value]
+    pub fn DefaultBondsPenalty<T: Config>() -> u16 {
+        T::InitialBondsPenalty::get()
+    }
     #[pallet::type_value]
     /// Default validator prune length.
     pub fn DefaultValidatorPruneLen<T: Config>() -> u64 {
@@ -1172,6 +1177,10 @@ pub mod pallet {
     /// --- MAP ( netuid ) --> bonds_moving_average
     pub type BondsMovingAverage<T> =
         StorageMap<_, Identity, u16, u64, ValueQuery, DefaultBondsMovingAverage<T>>;
+    #[pallet::storage]
+    /// --- MAP ( netuid ) --> bonds_penalty
+    pub type BondsPenalty<T> =
+        StorageMap<_, Identity, u16, u16, ValueQuery, DefaultBondsPenalty<T>>;
     /// --- MAP ( netuid ) --> weights_set_rate_limit
     #[pallet::storage]
     pub type WeightsSetRateLimit<T> =

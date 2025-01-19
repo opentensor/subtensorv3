@@ -154,9 +154,13 @@ fn init_run_epochs(
     random_weights: bool,
     random_seed: u64,
     sparse: bool,
+    bonds_penalty: u16,
 ) {
     // === Create the network
     add_network(netuid, u16::MAX - 1, 0); // set higher tempo to avoid built-in epoch, then manual epoch instead
+
+    // === Set bonds penalty
+    SubtensorModule::set_bonds_penalty(netuid, bonds_penalty);
 
     // === Register uids
     SubtensorModule::set_max_allowed_uids(netuid, n);
@@ -403,21 +407,25 @@ fn init_run_epochs(
 //     let epochs: u16 = 1;
 //     let interleave = 2;
 //     log::info!("test_consensus_guarantees ({network_n:?}, {validators_n:?} validators)");
-//     for (major_stake, major_weight, minor_weight, weight_stddev) in vec![
-//         (0.51, 1., 1., 0.001),
-//         (0.51, 0.03, 0., 0.001),
-//         (0.51, 0.51, 0.49, 0.001),
-//         (0.51, 0.51, 1., 0.001),
-//         (0.51, 0.61, 0.8, 0.1),
-//         (0.6, 0.67, 0.65, 0.2),
-//         (0.6, 0.74, 0.77, 0.4),
-//         (0.6, 0.76, 0.8, 0.4),
-//         (0.6, 0.76, 1., 0.4),
-//         (0.6, 0.92, 1., 0.4),
-//         (0.6, 0.94, 1., 0.4),
-//         (0.65, 0.78, 0.85, 0.6),
-//         (0.7, 0.81, 0.85, 0.8),
-//         (0.7, 0.83, 0.85, 1.),
+//     for (major_stake, major_weight, minor_weight, weight_stddev, bonds_penalty) in vec![
+// 		   (0.51, 1., 1., 0.001, u16::MAX),
+// 		   (0.51, 0.03, 0., 0.001, u16::MAX),
+// 		   (0.51, 0.51, 0.49, 0.001, u16::MAX),
+// 		   (0.51, 0.51, 1., 0.001, u16::MAX),
+// 		   (0.51, 0.61, 0.8, 0.1, u16::MAX),
+// 		   (0.6, 0.67, 0.65, 0.2, u16::MAX),
+// 		   (0.6, 0.74, 0.77, 0.4, u16::MAX),
+// 		   (0.6, 0.76, 0.8, 0.4, u16::MAX),
+// 		   (0.6, 0.73, 1., 0.4, u16::MAX), // bonds_penalty = 100%
+// 		   (0.6, 0.74, 1., 0.4, 55800), // bonds_penalty = 85%
+// 		   (0.6, 0.76, 1., 0.4, 43690), // bonds_penalty = 66%
+// 		   (0.6, 0.78, 1., 0.4, 21845), // bonds_penalty = 33%
+// 		   (0.6, 0.79, 1., 0.4, 0), // bonds_penalty = 0%
+// 		   (0.6, 0.92, 1., 0.4, u16::MAX),
+// 		   (0.6, 0.94, 1., 0.4, u16::MAX),
+// 		   (0.65, 0.78, 0.85, 0.6, u16::MAX),
+// 		   (0.7, 0.81, 0.85, 0.8, u16::MAX),
+// 		   (0.7, 0.83, 0.85, 1., u16::MAX),
 //     ] {
 //         let (
 //             validators,
@@ -455,6 +463,7 @@ fn init_run_epochs(
 //                 false,
 //                 0,
 //                 false,
+//                 bonds_penalty
 //             );
 
 //             let mut major_emission: I64F64 = I64F64::from_num(0);
@@ -698,6 +707,7 @@ fn test_512_graph() {
                     false,
                     0,
                     false,
+                    u16::MAX,
                 );
                 let bonds = SubtensorModule::get_bonds(netuid);
                 for uid in validators {
@@ -744,96 +754,99 @@ fn test_512_graph_random_weights() {
     let epochs: u16 = 1;
     log::info!("test_{network_n:?}_graph_random_weights ({validators_n:?} validators)");
     for interleave in 0..3 {
+        // server-self weight off/on
         for server_self in [false, true] {
-            // server-self weight off/on
-            let (validators, servers) = distribute_nodes(
-                validators_n as usize,
-                network_n as usize,
-                interleave as usize,
-            );
-            let server: usize = servers[0] as usize;
-            let validator: usize = validators[0] as usize;
-            #[allow(clippy::type_complexity)]
-            let (mut rank, mut incentive, mut dividend, mut emission, mut bondv, mut bonds): (
-                Vec<u16>,
-                Vec<u16>,
-                Vec<u16>,
-                Vec<u64>,
-                Vec<I32F32>,
-                Vec<I32F32>,
-            ) = (vec![], vec![], vec![], vec![], vec![], vec![]);
-
-            // Dense epoch
-            new_test_ext(1).execute_with(|| {
-                init_run_epochs(
-                    netuid,
-                    network_n,
-                    &validators,
-                    &servers,
-                    epochs,
-                    1,
-                    server_self,
-                    &[],
-                    false,
-                    &[],
-                    false,
-                    true,
-                    interleave as u64,
-                    false,
+            for bonds_penalty in vec![0, u16::MAX / 2, u16::MAX] {
+                let (validators, servers) = distribute_nodes(
+                    validators_n as usize,
+                    network_n as usize,
+                    interleave as usize,
                 );
+                let server: usize = servers[0] as usize;
+                let validator: usize = validators[0] as usize;
+                let (mut rank, mut incentive, mut dividend, mut emission, mut bondv, mut bonds): (
+                    Vec<u16>,
+                    Vec<u16>,
+                    Vec<u16>,
+                    Vec<u64>,
+                    Vec<I32F32>,
+                    Vec<I32F32>,
+                ) = (vec![], vec![], vec![], vec![], vec![], vec![]);
 
-                let bond = SubtensorModule::get_bonds(netuid);
-                for uid in 0..network_n {
-                    rank.push(SubtensorModule::get_rank_for_uid(netuid, uid));
-                    incentive.push(SubtensorModule::get_incentive_for_uid(netuid, uid));
-                    dividend.push(SubtensorModule::get_dividends_for_uid(netuid, uid));
-                    emission.push(SubtensorModule::get_emission_for_uid(netuid, uid));
-                    bondv.push(bond[uid as usize][validator]);
-                    bonds.push(bond[uid as usize][server]);
-                }
-            });
+                // Dense epoch
+                new_test_ext(1).execute_with(|| {
+                    init_run_epochs(
+                        netuid,
+                        network_n,
+                        &validators,
+                        &servers,
+                        epochs,
+                        1,
+                        server_self,
+                        &vec![],
+                        false,
+                        &vec![],
+                        false,
+                        true,
+                        interleave as u64,
+                        false,
+                        bonds_penalty,
+                    );
 
-            // Sparse epoch (same random seed as dense)
-            new_test_ext(1).execute_with(|| {
-                init_run_epochs(
-                    netuid,
-                    network_n,
-                    &validators,
-                    &servers,
-                    epochs,
-                    1,
-                    server_self,
-                    &[],
-                    false,
-                    &[],
-                    false,
-                    true,
-                    interleave as u64,
-                    true,
-                );
-                // Assert that dense and sparse epoch results are equal
-                let bond = SubtensorModule::get_bonds(netuid);
-                for uid in 0..network_n {
-                    assert_eq!(
-                        SubtensorModule::get_rank_for_uid(netuid, uid),
-                        rank[uid as usize]
+                    let bond = SubtensorModule::get_bonds(netuid);
+                    for uid in 0..network_n {
+                        rank.push(SubtensorModule::get_rank_for_uid(netuid, uid));
+                        incentive.push(SubtensorModule::get_incentive_for_uid(netuid, uid));
+                        dividend.push(SubtensorModule::get_dividends_for_uid(netuid, uid));
+                        emission.push(SubtensorModule::get_emission_for_uid(netuid, uid));
+                        bondv.push(bond[uid as usize][validator]);
+                        bonds.push(bond[uid as usize][server]);
+                    }
+                });
+
+                // Sparse epoch (same random seed as dense)
+                new_test_ext(1).execute_with(|| {
+                    init_run_epochs(
+                        netuid,
+                        network_n,
+                        &validators,
+                        &servers,
+                        epochs,
+                        1,
+                        server_self,
+                        &vec![],
+                        false,
+                        &vec![],
+                        false,
+                        true,
+                        interleave as u64,
+                        true,
+                        bonds_penalty,
                     );
-                    assert_eq!(
-                        SubtensorModule::get_incentive_for_uid(netuid, uid),
-                        incentive[uid as usize]
-                    );
-                    assert_eq!(
-                        SubtensorModule::get_dividends_for_uid(netuid, uid),
-                        dividend[uid as usize]
-                    );
-                    assert_eq!(
-                        SubtensorModule::get_emission_for_uid(netuid, uid),
-                        emission[uid as usize]
-                    );
-                    assert_eq!(bond[uid as usize][validator], bondv[uid as usize]);
-                    assert_eq!(bond[uid as usize][server], bonds[uid as usize]);
-                }
-            });
+                    // Assert that dense and sparse epoch results are equal
+                    let bond = SubtensorModule::get_bonds(netuid);
+                    for uid in 0..network_n {
+                        assert_eq!(
+                            SubtensorModule::get_rank_for_uid(netuid, uid),
+                            rank[uid as usize]
+                        );
+                        assert_eq!(
+                            SubtensorModule::get_incentive_for_uid(netuid, uid),
+                            incentive[uid as usize]
+                        );
+                        assert_eq!(
+                            SubtensorModule::get_dividends_for_uid(netuid, uid),
+                            dividend[uid as usize]
+                        );
+                        assert_eq!(
+                            SubtensorModule::get_emission_for_uid(netuid, uid),
+                            emission[uid as usize]
+                        );
+                        assert_eq!(bond[uid as usize][validator], bondv[uid as usize]);
+                        assert_eq!(bond[uid as usize][server], bonds[uid as usize]);
+                    }
+                });
+            }
         }
     }
 }
@@ -873,6 +886,7 @@ fn test_512_graph_random_weights() {
 //                     false,
 //                     0,
 //                     true,
+//                     u16::MAX,
 //                 );
 //                 let (total_stake, _, _) = SubtensorModule::get_stake_weights_for_network(netuid);
 //                 assert_eq!(total_stake.iter().map(|s| s.to_num::<u64>()).sum::<u64>(), 21_000_000_000_000_000);
@@ -940,6 +954,7 @@ fn test_512_graph_random_weights() {
 //             false,
 //             0,
 //             true,
+//             u16::MAX,
 //         );
 //         let bonds = SubtensorModule::get_bonds(netuid);
 //         for uid in validators {
@@ -995,6 +1010,8 @@ fn test_bonds() {
 		SubtensorModule::set_weights_set_rate_limit( netuid, 0 );
         SubtensorModule::set_min_allowed_weights( netuid, 1 );
         SubtensorModule::set_max_weight_limit( netuid, u16::MAX );
+		SubtensorModule::set_bonds_penalty(netuid, u16::MAX);
+
 
 		// === Register [validator1, validator2, validator3, validator4, server1, server2, server3, server4]
 		for key in 0..n as u64 {
@@ -1752,6 +1769,7 @@ fn test_outdated_weights() {
         SubtensorModule::set_target_registrations_per_interval(netuid, n);
         SubtensorModule::set_min_allowed_weights(netuid, 0);
         SubtensorModule::set_max_weight_limit(netuid, u16::MAX);
+        SubtensorModule::set_bonds_penalty(netuid, u16::MAX);
         assert_eq!(SubtensorModule::get_registrations_this_block(netuid), 0);
 
         // === Register [validator1, validator2, server1, server2]
@@ -2817,6 +2835,7 @@ fn test_blocks_since_last_step() {
 //     let epochs: u16 = 1;
 //     let interleave = 0;
 //     let weight_stddev: I32F32 = fixed(0.4);
+//     let bonds_penalty: u16 = u16::MAX;
 //     println!("[");
 //     for _major_stake in vec![0.51, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 0.99] {
 //         let major_stake: I32F32 = I32F32::from_num(_major_stake);
@@ -2846,7 +2865,7 @@ fn test_blocks_since_last_step() {
 //                 );
 //
 //                 new_test_ext(1).execute_with(|| {
-// 					init_run_epochs(netuid, network_n, &validators, &servers, epochs, 1, true, &stake, true, &weights, true, false, 0, true);
+// 					init_run_epochs(netuid, network_n, &validators, &servers, epochs, 1, true, &stake, true, &weights, true, false, 0, true, bonds_penalty);
 //
 // 					let mut major_emission: I64F64 = I64F64::from_num(0);
 // 					let mut minor_emission: I64F64 = I64F64::from_num(0);

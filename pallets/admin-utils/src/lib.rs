@@ -685,6 +685,31 @@ pub mod pallet {
             Ok(())
         }
 
+        /// The extrinsic sets the bonds penalty for a subnet.
+        /// It is only callable by the root account or subnet owner.
+        /// The extrinsic will call the Subtensor pallet to set the bonds penalty.
+        #[pallet::call_index(60)]
+        #[pallet::weight(<T as Config>::WeightInfo::sudo_set_bonds_penalty())]
+        pub fn sudo_set_bonds_penalty(
+            origin: OriginFor<T>,
+            netuid: u16,
+            bonds_penalty: u16,
+        ) -> DispatchResult {
+            pallet_subtensor::Pallet::<T>::ensure_subnet_owner_or_root(origin, netuid)?;
+
+            ensure!(
+                pallet_subtensor::Pallet::<T>::if_subnet_exist(netuid),
+                Error::<T>::SubnetDoesNotExist
+            );
+            pallet_subtensor::Pallet::<T>::set_bonds_penalty(netuid, bonds_penalty);
+            log::debug!(
+                "BondsPenalty( netuid: {:?} bonds_penalty: {:?} ) ",
+                netuid,
+                bonds_penalty
+            );
+            Ok(())
+        }
+
         /// The extrinsic sets the maximum registrations per block for a subnet.
         /// It is only callable by the root account.
         /// The extrinsic will call the Subtensor pallet to set the maximum registrations per block.

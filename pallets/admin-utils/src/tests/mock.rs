@@ -86,6 +86,7 @@ parameter_types! {
     pub const InitialImmunityPeriod: u16 = 2;
     pub const InitialMaxAllowedUids: u16 = 2;
     pub const InitialBondsMovingAverage: u64 = 900_000;
+    pub const InitialBondsPenalty: u16 = 0;
     pub const InitialStakePruningMin: u16 = 0;
     pub const InitialFoundationDistribution: u64 = 0;
     pub const InitialDefaultDelegateTake: u16 = 11_796; // 18% honest number.
@@ -163,6 +164,7 @@ impl pallet_subtensor::Config for Test {
     type InitialMaxRegistrationsPerBlock = InitialMaxRegistrationsPerBlock;
     type InitialPruningScore = InitialPruningScore;
     type InitialBondsMovingAverage = InitialBondsMovingAverage;
+    type InitialBondsPenalty = InitialBondsPenalty;
     type InitialMaxAllowedValidators = InitialMaxAllowedValidators;
     type InitialDefaultDelegateTake = InitialDefaultDelegateTake;
     type InitialMinDelegateTake = InitialMinDelegateTake;

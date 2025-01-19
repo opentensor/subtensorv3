@@ -566,6 +566,14 @@ impl<T: Config> Pallet<T> {
         Self::deposit_event(Event::BondsMovingAverageSet(netuid, bonds_moving_average));
     }
 
+    pub fn get_bonds_penalty(netuid: u16) -> u16 {
+        BondsPenalty::<T>::get(netuid)
+    }
+    pub fn set_bonds_penalty(netuid: u16, bonds_penalty: u16) {
+        BondsPenalty::<T>::insert(netuid, bonds_penalty);
+        Self::deposit_event(Event::BondsPenaltySet(netuid, bonds_penalty));
+    }
+
     pub fn get_max_registrations_per_block(netuid: u16) -> u16 {
         MaxRegistrationsPerBlock::<T>::get(netuid)
     }
