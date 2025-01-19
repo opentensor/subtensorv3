@@ -1596,5 +1596,34 @@ mod dispatches {
                 alpha_amount,
             )
         }
+        /// ---- The implementation for the extrinsic transfer_stake: Moves specified amount of stake from a coldkey to another.
+        ///
+        /// # Args:
+        /// * `origin` - (<T as frame_system::Config>::Origin):
+        ///     - The signature of the caller's coldkey.
+        ///
+        /// * `hotkey` (T::AccountId):
+        ///     - The hotkey account to move stake from.
+        ///
+        /// * `destination_coldkey` (T::AccountId):
+        ///     - The coldkey account to move stake to.
+        ///
+        /// * `netuid` (T::AccountId):
+        ///     - The subnet ID to move stake from.
+        ///
+        /// * `alpha_amount` (T::AccountId):
+        ///     - The alpha stake amount to move.
+        ///
+        #[pallet::call_index(86)]
+        #[pallet::weight((Weight::from_parts(3_000_000, 0).saturating_add(T::DbWeight::get().writes(1)), DispatchClass::Operational, Pays::No))]
+        pub fn transfer_stake(
+            origin: T::RuntimeOrigin,
+            hotkey: T::AccountId,
+            destination_coldkey: T::AccountId,
+            netuid: u16,
+            alpha_amount: u64,
+        ) -> DispatchResult {
+            Self::do_transfer_stake(origin, hotkey, destination_coldkey, netuid, alpha_amount)
+        }
     }
 }
