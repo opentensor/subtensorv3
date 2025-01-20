@@ -1,0 +1,20 @@
+[
+    {
+        "inputs": [
+            {
+                "internalType": "uint16",
+                "name": "netuid",
+                "type": "uint16"
+            },
+            {
+                "internalType": "bytes32",
+                "name": "hotkey",
+                "type": "bytes32"
+            }
+        ],
+        "name": "burnedRegister",
+        "outputs": [],
+        "stateMutability": "payable",
+        "type": "function"
+    }
+]

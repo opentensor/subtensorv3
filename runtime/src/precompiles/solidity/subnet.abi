@@ -1,0 +1,43 @@
+[
+    {
+        "inputs": [
+            {
+                "internalType": "bytes32",
+                "name": "hotkey",
+                "type": "bytes32"
+            }
+        ],
+        "name": "registerNetwork",
+        "outputs": [],
+        "stateMutability": "payable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "bytes32",
+                "name": "hotkey",
+                "type": "bytes32"
+            },
+            {
+                "internalType": "bytes",
+                "name": "subnetName",
+                "type": "bytes"
+            },
+            {
+                "internalType": "bytes",
+                "name": "githubRepo",
+                "type": "bytes"
+            },
+            {
+                "internalType": "bytes",
+                "name": "subnetContact",
+                "type": "bytes"
+            }
+        ],
+        "name": "registerNetwork",
+        "outputs": [],
+        "stateMutability": "payable",
+        "type": "function"
+    }
+]
